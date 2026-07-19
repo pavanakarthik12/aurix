@@ -1,14 +1,11 @@
-"use client";
-
-import Link from "next/link";
-import { ArrowRight, UtensilsCrossed, Car, Clapperboard, Zap, ShoppingBag, HeartPulse, Home, MoreHorizontal } from "lucide-react";
+import { UtensilsCrossed, Car, Clapperboard, Zap, ShoppingBag, HeartPulse, Home, MoreHorizontal } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { CATEGORY_LABELS } from "@/lib/mock-data";
 import { formatCurrency, formatDate } from "@/lib/format";
 import type { ExpenseCategory } from "@/types/finance";
-import { useExpensesStore } from "@/store/expenses-store";
+import type { TrackedTransaction } from "@/store/expenses-store";
 
 const CATEGORY_ICONS: Record<ExpenseCategory, LucideIcon> = {
   food: UtensilsCrossed,
@@ -21,23 +18,28 @@ const CATEGORY_ICONS: Record<ExpenseCategory, LucideIcon> = {
   other: MoreHorizontal,
 };
 
-export function RecentTransactions() {
-  const transactions = useExpensesStore((s) => s.transactions).slice(0, 6);
+const SOURCE_LABELS: Record<TrackedTransaction["source"], string> = {
+  manual: "Manual",
+  screenshot: "Screenshot",
+  splitwise: "Splitwise",
+};
+
+interface TransactionListProps {
+  transactions: TrackedTransaction[];
+  emptyLabel?: string;
+}
+
+export function TransactionList({ transactions, emptyLabel }: TransactionListProps) {
+  if (transactions.length === 0) {
+    return (
+      <Card className="p-10 text-center text-sm text-muted-foreground">
+        {emptyLabel ?? "No transactions yet."}
+      </Card>
+    );
+  }
 
   return (
     <Card>
-      <CardHeader className="flex-row items-center justify-between space-y-0">
-        <div>
-          <CardTitle>Recent Transactions</CardTitle>
-          <CardDescription>Latest activity across your accounts</CardDescription>
-        </div>
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/expenses">
-            View all
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </Button>
-      </CardHeader>
       <CardContent className="p-0">
         <ul className="divide-y divide-border">
           {transactions.map((tx) => {
@@ -53,6 +55,9 @@ export function RecentTransactions() {
                     {CATEGORY_LABELS[tx.category]} · {formatDate(tx.date)}
                   </p>
                 </div>
+                <Badge variant="muted" className="hidden sm:inline-flex">
+                  {SOURCE_LABELS[tx.source]}
+                </Badge>
                 <p className="shrink-0 text-sm font-semibold text-foreground">
                   −{formatCurrency(tx.amount)}
                 </p>

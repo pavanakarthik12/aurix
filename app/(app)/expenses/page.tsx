@@ -1,17 +1,20 @@
-import type { Metadata } from "next";
+"use client";
+
+import { useState } from "react";
 import { Plus, Receipt } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { RecentTransactions } from "@/features/dashboard/widgets/recent-transactions";
-import { MOCK_TRANSACTIONS } from "@/lib/mock-data";
-
-export const metadata: Metadata = { title: "Expenses" };
+import { TransactionList } from "@/features/expenses/transaction-list";
+import { ScreenshotUpload } from "@/features/expenses/screenshot-upload";
+import { useExpensesStore } from "@/store/expenses-store";
 
 export default function ExpensesPage() {
-  const hasTransactions = MOCK_TRANSACTIONS.length > 0;
+  const [tab, setTab] = useState("all");
+  const transactions = useExpensesStore((s) => s.transactions);
+  const hasTransactions = transactions.length > 0;
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -19,7 +22,7 @@ export default function ExpensesPage() {
         title="Expenses"
         description="Every transaction, extracted and categorized automatically."
         actions={
-          <Button size="sm">
+          <Button size="sm" onClick={() => setTab("screenshots")}>
             <Plus className="h-4 w-4" />
             Add expense
           </Button>
@@ -28,7 +31,7 @@ export default function ExpensesPage() {
 
       {hasTransactions ? (
         <div className="space-y-6">
-          <Tabs defaultValue="all">
+          <Tabs value={tab} onValueChange={setTab}>
             <TabsList>
               <TabsTrigger value="all">All</TabsTrigger>
               <TabsTrigger value="screenshots">From screenshots</TabsTrigger>
@@ -36,17 +39,20 @@ export default function ExpensesPage() {
               <TabsTrigger value="splitwise">Splitwise</TabsTrigger>
             </TabsList>
             <TabsContent value="all">
-              <RecentTransactions />
+              <TransactionList transactions={transactions} />
             </TabsContent>
-            <TabsContent value="screenshots">
-              <Card className="p-10 text-center text-sm text-muted-foreground">
-                Upload a payment screenshot to see extracted expenses here.
-              </Card>
+            <TabsContent value="screenshots" className="space-y-6">
+              <ScreenshotUpload />
+              <TransactionList
+                transactions={transactions.filter((t) => t.source === "screenshot")}
+                emptyLabel="No expenses extracted from screenshots yet."
+              />
             </TabsContent>
             <TabsContent value="manual">
-              <Card className="p-10 text-center text-sm text-muted-foreground">
-                Manually added expenses will appear here.
-              </Card>
+              <TransactionList
+                transactions={transactions.filter((t) => t.source === "manual")}
+                emptyLabel="Manually added expenses will appear here."
+              />
             </TabsContent>
             <TabsContent value="splitwise">
               <Card className="p-10 text-center text-sm text-muted-foreground">
@@ -61,7 +67,7 @@ export default function ExpensesPage() {
           title="No expenses yet"
           description="Upload a payment screenshot or add an expense manually to get started."
           action={
-            <Button size="sm">
+            <Button size="sm" onClick={() => setTab("screenshots")}>
               <Plus className="h-4 w-4" />
               Add Expense
             </Button>
