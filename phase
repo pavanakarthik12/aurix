@@ -1,0 +1,306 @@
+# Update the Project Setup
+
+I have already added my **Grok API Key** to the `.env` file.
+
+Your responsibility is to ensure that **Grok is fully integrated across the entire backend** and that there are **no placeholder implementations**.
+
+This is a production-ready setup.
+
+---
+
+# Grok Integration Requirements
+
+Use **Grok as the ONLY LLM provider**.
+
+Do not configure or install:
+
+- OpenAI
+- Gemini
+- Claude
+- DeepSeek
+- Ollama
+- HuggingFace Inference APIs
+
+The entire AI pipeline must use **Grok**.
+
+---
+
+# Verify Environment Variables
+
+Read the API key directly from `.env`.
+
+Example
+
+```env
+GROK_API_KEY=xxxxxxxxxxxxxxxx
+```
+
+Never hardcode the key.
+
+If the key is missing,
+
+- display a meaningful startup error
+- prevent the AI service from initializing
+- explain exactly what is missing
+
+---
+
+# Create a Central AI Service
+
+Create one reusable AI service.
+
+Example
+
+```
+app/
+    ai/
+        provider.py
+        grok.py
+        prompts.py
+        models.py
+```
+
+Every future feature must call this service.
+
+Never call Grok directly from routes or business logic.
+
+---
+
+# Test the Connection
+
+When the backend starts,
+
+perform a lightweight connection check.
+
+Verify
+
+- API key exists
+- Authentication succeeds
+- Grok endpoint is reachable
+- A simple prompt returns successfully
+
+If successful,
+
+log
+
+```
+✓ Grok Connected Successfully
+```
+
+If unsuccessful,
+
+display the complete error,
+
+including
+
+- authentication errors
+- network errors
+- invalid key
+- timeout
+
+without crashing the application unnecessarily.
+
+---
+
+# AI Service Responsibilities
+
+The Grok service should be reusable by every module.
+
+Future modules that must automatically use this service include
+
+- Financial Advisor
+- OCR Analysis
+- Receipt Understanding
+- Budget Planner
+- Spending Analysis
+- Goal Tracking
+- Financial Health Score
+- Recommendation Engine
+- AI Insights
+- RAG Answer Generation
+- Financial Chat
+- Investment Suggestions
+- Expense Categorization
+- Report Generation
+
+There should never be duplicated AI request logic.
+
+---
+
+# Connection Architecture
+
+Every request should follow
+
+```
+Feature
+
+↓
+
+AI Service
+
+↓
+
+Grok Client
+
+↓
+
+Grok API
+```
+
+No feature should communicate with Grok directly.
+
+---
+
+# Configuration
+
+Create
+
+```
+config.py
+```
+
+Store
+
+- API key
+- Model
+- Temperature
+- Max Tokens
+- Timeout
+
+All values should come from `.env`.
+
+---
+
+# Error Handling
+
+Handle
+
+- Invalid API Key
+- Missing API Key
+- Rate Limits
+- Timeouts
+- Connection Failure
+- Invalid Responses
+
+Every error should return meaningful logs.
+
+Never expose sensitive information.
+
+---
+
+# Retry Logic
+
+Implement automatic retry.
+
+Retry
+
+3 times
+
+using exponential backoff.
+
+If all retries fail,
+
+return a clean application error.
+
+---
+
+# Streaming Support
+
+Prepare the service so that streaming responses can be enabled later.
+
+Design the architecture now,
+
+even if streaming is not yet implemented.
+
+---
+
+# Logging
+
+Every AI request should log
+
+- request timestamp
+- response time
+- model used
+- success/failure
+
+Never log
+
+- API keys
+- private prompts
+- user financial data
+
+---
+
+# Health Check
+
+Extend
+
+```
+GET /health
+```
+
+to include
+
+```json
+{
+  "backend": "healthy",
+  "database": "connected",
+  "grok": "connected"
+}
+```
+
+If Grok cannot be reached,
+
+the endpoint should clearly indicate
+
+```
+"grok": "disconnected"
+```
+
+along with a non-sensitive diagnostic message.
+
+---
+
+# Startup Validation
+
+When the application starts,
+
+automatically verify
+
+- `.env` loaded
+- PostgreSQL connection
+- Grok API connection
+- Tesseract installation
+- Upload directory
+- Redis (if configured)
+
+Display clear startup logs showing the status of each dependency.
+
+---
+
+# Code Quality
+
+The Grok integration must be
+
+- modular
+- reusable
+- production-ready
+- dependency injected where appropriate
+- strongly typed
+- easy to extend
+
+Avoid hardcoded values and duplicated code.
+
+---
+
+# Definition of Done
+
+This setup is complete only if:
+
+- The application successfully reads the Grok API key from `.env`.
+- The backend verifies connectivity to Grok during startup.
+- Every future AI feature is routed through a single reusable AI service.
+- `/health` accurately reports Grok connectivity.
+- Errors are handled gracefully with clear logs.
+- The architecture is ready for future AI features without requiring refactoring.
+- There are no placeholder AI implementations or unused provider configurations.

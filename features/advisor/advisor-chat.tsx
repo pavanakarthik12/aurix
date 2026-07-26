@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Send, Bot, User, Brain, Loader2, Wifi, BookOpen, TrendingUp, Wallet } from "lucide-react";
+import { Sparkles, Send, Bot, User, Brain, Loader2, Wifi, BookOpen, TrendingUp, Wallet, Info } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import { RecommendationsList } from "./recommendations";
 import { InsightsList } from "./insights-list";
 import { PredictionsWidget } from "./predictions";
 import { getMultiToolResponse, getAIRecommendations, getSpendingInsights, getPredictions } from "@/services/advisor-service";
-import { getGuruDebate } from "@/services/advisor-service";
+import { isAIReal, getAIProviderLabel } from "@/lib/config";
 import type { GuruDebate, AIAgentTool } from "@/types/finance";
 
 const SUGGESTED_QUESTIONS = [
@@ -71,7 +71,7 @@ export function AdvisorChat() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
-  const ask = (question: string) => {
+  const ask = useCallback(async (question: string) => {
     if (!question.trim()) return;
 
     const userMsg: ChatMessage = { type: "user", text: question };
@@ -79,28 +79,49 @@ export function AdvisorChat() {
     setMessages((prev) => [...prev, userMsg, loadingMsg]);
     setQuery("");
 
-    setTimeout(() => {
-      const response = getMultiToolResponse(question);
-      const debate = getGuruDebate(question);
+    try {
+      const response = await getMultiToolResponse(question);
       setMessages((prev) => {
         const msgs = [...prev];
         msgs[msgs.length - 1] = {
           type: "bot",
           text: response.summary,
-          debate,
+          debate: response.guruDebate,
           tools: response.tools,
         };
         return msgs;
       });
-    }, 1200);
-  };
+    } catch {
+      setMessages((prev) => {
+        const msgs = [...prev];
+        msgs[msgs.length - 1] = { type: "bot", text: "An error occurred. Please try again.", loading: false };
+        return msgs;
+      });
+    }
+  }, []);
 
-  const recommendations = getAIRecommendations();
-  const insights = getSpendingInsights();
-  const predictions = getPredictions();
+  const [recommendations] = useState(() => getAIRecommendations());
+  const [insights, setInsights] = useState<Awaited<ReturnType<typeof getSpendingInsights>>>([]);
+  const [predictions] = useState(() => getPredictions());
+
+  useEffect(() => {
+    getSpendingInsights().then(setInsights);
+  }, []);
+
+  const aiLive = isAIReal();
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center gap-2">
+        <Badge variant={aiLive ? "success" : "muted"} className="gap-1.5">
+          <span className={`h-1.5 w-1.5 rounded-full ${aiLive ? "bg-success" : "bg-muted-foreground"}`} />
+          {aiLive ? getAIProviderLabel() : "Mock Mode"}
+        </Badge>
+        {!aiLive && (
+          <span className="text-xs text-muted-foreground">Set API keys in .env.local for live AI</span>
+        )}
+      </div>
+
       <Tabs value={mode} onValueChange={(v) => setMode(v as typeof mode)} className="w-full">
         <TabsList className="w-full sm:w-auto">
           <TabsTrigger value="chat" className="gap-2">

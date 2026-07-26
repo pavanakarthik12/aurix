@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Menu, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Bell, Menu, Search, LogOut, Settings } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,11 +17,20 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { usePersona, usePersonaStore } from "@/store/persona-store";
+import { useAuthStore } from "@/store/auth-store";
 import { initials } from "@/lib/format";
 
 export function Navbar({ onOpenMobileNav }: { onOpenMobileNav?: () => void }) {
+  const router = useRouter();
   const persona = usePersona();
   const name = usePersonaStore((s) => s.profile.name) || "Aurix User";
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
+
+  function handleSignOut() {
+    logout();
+    router.push("/login");
+  }
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/85 px-4 backdrop-blur-md sm:px-6">
@@ -55,22 +65,26 @@ export function Navbar({ onOpenMobileNav }: { onOpenMobileNav?: () => void }) {
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <Avatar>
-                <AvatarFallback>{initials(name)}</AvatarFallback>
+                <AvatarFallback>{initials(user?.name ?? name)}</AvatarFallback>
               </Avatar>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>{name}</DropdownMenuLabel>
+            <DropdownMenuLabel>{user?.name ?? name}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link href="/profile">Profile</Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/settings">Settings</Link>
+              <Link href="/settings">
+                <Settings className="mr-2 h-4 w-4" />
+                Settings
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/login">Sign out</Link>
+            <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

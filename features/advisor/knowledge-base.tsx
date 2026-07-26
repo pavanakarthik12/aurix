@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -39,7 +39,11 @@ const STATUS_CONFIG: Record<string, { icon: React.ElementType; label: string; va
 
 export function KnowledgeBaseUpload() {
   const [dragOver, setDragOver] = useState(false);
-  const [documents] = useState<RAGDocument[]>(getRAGDocuments());
+  const [documents, setDocuments] = useState<RAGDocument[]>([]);
+
+  useEffect(() => {
+    getRAGDocuments().then(setDocuments);
+  }, []);
 
   return (
     <Card>
@@ -116,14 +120,14 @@ export function KnowledgeBaseSearch() {
   const [searched, setSearched] = useState(false);
   const [searching, setSearching] = useState(false);
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!query.trim()) return;
     setSearching(true);
     setSearched(true);
-    setTimeout(() => {
-      setResults(searchKnowledgeBase(query));
-      setSearching(false);
-    }, 600);
+    await new Promise((r) => setTimeout(r, 600));
+    const res = await searchKnowledgeBase(query);
+    setResults(res);
+    setSearching(false);
   };
 
   return (

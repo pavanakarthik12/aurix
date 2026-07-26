@@ -8,25 +8,30 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useUIStore } from "@/store/ui-store";
 import { getMultiToolResponse, getGuruDebate } from "@/services/advisor-service";
+import { isAIReal } from "@/lib/config";
 import { GuruDebateView } from "@/features/advisor/guru-debate";
 
 export function AssistantDrawer() {
   const open = useUIStore((s) => s.assistantOpen);
   const setOpen = useUIStore((s) => s.setAssistantOpen);
   const [query, setQuery] = useState("");
-  const [response, setResponse] = useState<{ text: string; debate?: ReturnType<typeof getGuruDebate> } | null>(null);
+  const [response, setResponse] = useState<{ text: string; debate?: Awaited<ReturnType<typeof getGuruDebate>> } | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const ask = (question: string) => {
+  const ask = async (question: string) => {
     if (!question.trim()) return;
     setLoading(true);
     setQuery("");
-    setTimeout(() => {
-      const result = getMultiToolResponse(question);
-      const debate = getGuruDebate(question);
+    try {
+      const [result, debate] = await Promise.all([
+        getMultiToolResponse(question),
+        getGuruDebate(question),
+      ]);
       setResponse({ text: result.summary, debate });
-      setLoading(false);
-    }, 1000);
+    } catch {
+      setResponse({ text: "An error occurred. Please try again." });
+    }
+    setLoading(false);
   };
 
   return (
@@ -54,7 +59,9 @@ export function AssistantDrawer() {
                 </span>
                 <div>
                   <p className="text-sm font-semibold text-foreground">AI Advisor</p>
-                  <Badge variant="success" className="text-[10px]">Live</Badge>
+                  <Badge variant={isAIReal() ? "success" : "default"} className="text-[10px]">
+                    {isAIReal() ? "Live" : "Mock"}
+                  </Badge>
                 </div>
               </div>
               <Button variant="ghost" size="icon" onClick={() => setOpen(false)} aria-label="Close assistant">
@@ -68,11 +75,9 @@ export function AssistantDrawer() {
                   <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
                     <Brain className="h-6 w-6" />
                   </div>
-                  <p className="text-sm font-semibold text-foreground">
-                    Ask Aurix anything
-                  </p>
+                  <p className="text-sm font-semibold text-foreground">Ask Aurix anything</p>
                   <p className="max-w-xs text-sm text-muted-foreground">
-                    Get personalized financial advice powered by multi-guru intelligence.
+                    Get personalized financial advice powered by multi-guru intelligence and your live financial data.
                   </p>
                 </div>
               )}

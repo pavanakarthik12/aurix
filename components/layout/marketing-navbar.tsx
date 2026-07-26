@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/shared/logo";
+import { useAuthStore } from "@/store/auth-store";
 
 const LINKS = [
   { label: "Product", href: "#features" },
@@ -16,6 +17,7 @@ const LINKS = [
 
 export function MarketingNavbar() {
   const [open, setOpen] = useState(false);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/70 bg-background/80 backdrop-blur-md">
@@ -35,12 +37,20 @@ export function MarketingNavbar() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/login">Sign in</Link>
-          </Button>
-          <Button size="sm" asChild>
-            <Link href="/register">Get started</Link>
-          </Button>
+          {isAuthenticated ? (
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/dashboard">Dashboard</Link>
+            </Button>
+          ) : (
+            <>
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/login">Sign in</Link>
+              </Button>
+              <Button size="sm" asChild>
+                <Link href="/register">Get started</Link>
+              </Button>
+            </>
+          )}
         </div>
 
         <button
@@ -73,12 +83,20 @@ export function MarketingNavbar() {
                 </a>
               ))}
               <div className="mt-3 flex flex-col gap-2">
-                <Button variant="outline" asChild>
-                  <Link href="/login">Sign in</Link>
-                </Button>
-                <Button asChild>
-                  <Link href="/register">Get started</Link>
-                </Button>
+                {isAuthenticated ? (
+                  <Button asChild>
+                    <Link href="/dashboard">Dashboard</Link>
+                  </Button>
+                ) : (
+                  <>
+                    <Button variant="outline" asChild>
+                      <Link href="/login">Sign in</Link>
+                    </Button>
+                    <Button asChild>
+                      <Link href="/register">Get started</Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </motion.div>

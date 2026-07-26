@@ -9,7 +9,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@clerk/nextjs": "^6",
     "@hookform/resolvers": "^3",
     "@radix-ui/react-avatar": "^1",
     "@radix-ui/react-checkbox": "^1",

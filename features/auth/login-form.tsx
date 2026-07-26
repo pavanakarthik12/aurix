@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -13,30 +13,62 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PasswordInput } from "@/components/shared/password-input";
+import { useAuthStore } from "@/store/auth-store";
 
 const loginSchema = z.object({
   email: z.string().min(1, "Email is required").email("Enter a valid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  remember: z.boolean().optional(),
+  password: z.string().min(1, "Password is required"),
 });
 
 type LoginValues = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const login = useAuthStore((s) => s.login);
+
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { remember: true },
+    defaultValues: {
+      email: searchParams.get("email") ?? "",
+      password: searchParams.get("password") ?? "",
+    },
   });
 
-  async function onSubmit() {
-    await new Promise((resolve) => setTimeout(resolve, 900));
+  const submittedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    const emailParam = searchParams.get("email");
+    const passwordParam = searchParams.get("password");
+    if (emailParam) setValue("email", emailParam);
+    if (passwordParam) setValue("password", passwordParam);
+    if (emailParam && passwordParam && !submittedRef.current) {
+      submittedRef.current = true;
+      const timer = setTimeout(() => {
+        const result = login(emailParam.trim(), passwordParam);
+        if (result.success) {
+          const redirect = searchParams.get("redirect") || "/dashboard";
+          router.replace(redirect);
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams, setValue, login, router]);
+
+  async function onSubmit(data: LoginValues) {
+    const result = login(data.email.trim(), data.password);
+    if (!result.success) {
+      toast.error(result.error ?? "Sign in failed");
+      return;
+    }
     toast.success("Signed in successfully");
-    router.push("/dashboard");
+    const redirect = searchParams.get("redirect") || "/dashboard";
+    router.replace(redirect);
   }
 
   return (
@@ -46,7 +78,7 @@ export function LoginForm() {
         <Input
           id="email"
           type="email"
-          placeholder="you@company.com"
+          placeholder="admin@123gmail.com"
           autoComplete="email"
           {...register("email")}
         />
@@ -77,7 +109,7 @@ export function LoginForm() {
       </div>
 
       <div className="flex items-center gap-2">
-        <Checkbox id="remember" {...register("remember")} defaultChecked />
+        <Checkbox id="remember" defaultChecked />
         <Label htmlFor="remember" className="text-sm font-normal text-muted-foreground">
           Remember me for 30 days
         </Label>

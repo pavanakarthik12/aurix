@@ -8,6 +8,21 @@ import type {
 } from "@/types/finance";
 import { FINANCIAL_GURUS, ADVICE_PRINCIPLES } from "@/lib/financial-advice";
 import { MOCK_TRANSACTIONS, EXPENSE_BREAKDOWN, SPENDING_TREND } from "@/lib/mock-data";
+import { isAIReal } from "@/lib/config";
+
+async function apiCall<T>(endpoint: string, body: Record<string, unknown>): Promise<T | null> {
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
 
 function matchGurus(query: string): GuruResponse[] {
   const normalized = query.toLowerCase();
@@ -36,15 +51,21 @@ function generateSummary(query: string, responses: GuruResponse[]): string {
   const totalSpending = EXPENSE_BREAKDOWN.reduce((s, c) => s + c.amount, 0);
   const monthlyIncome = 75000;
   const savingsRate = ((monthlyIncome - totalSpending) / monthlyIncome) * 100;
-
   if (responses.length === 0) {
     return "Based on your financial profile, consider reviewing your spending categories and setting clear savings goals before making this decision.";
   }
-
   return `Considering your monthly income of ₹${(monthlyIncome / 1000).toFixed(0)}K and current savings rate of ${savingsRate.toFixed(0)}%, the most prudent path aligns with ${responses[0]?.guruName || "sound financial principles"}. Your current spending across all categories totals ₹${(totalSpending / 1000).toFixed(0)}K/month.`;
 }
 
-export function getGuruDebate(query: string): GuruDebate {
+export async function getGuruDebate(query: string): Promise<GuruDebate> {
+  if (isAIReal()) {
+    const result = await apiCall<{ responses: GuruResponse[]; summary: string; confidence: number }>(
+      "/api/advisor", { query, mode: "debate" }
+    );
+    if (result) {
+      return { query, responses: result.responses, summary: result.summary, confidence: result.confidence };
+    }
+  }
   const responses = matchGurus(query);
   const summary = generateSummary(query, responses);
   const confidence = Math.min(95, 60 + responses.length * 10);
@@ -89,8 +110,6 @@ export function detectTools(query: string): AIAgentTool[] {
 export function getAIRecommendations(): AIRecommendation[] {
   const monthlyIncome = 75000;
   const totalSpending = EXPENSE_BREAKDOWN.reduce((s, c) => s + c.amount, 0);
-  const currentSavings = monthlyIncome - totalSpending;
-
   return [
     {
       id: "rec-1",
@@ -157,7 +176,6 @@ export function getPredictions(): PredictionResult[] {
   const totalSpending = EXPENSE_BREAKDOWN.reduce((s, c) => s + c.amount, 0);
   const monthlyIncome = 75000;
   const currentSavings = monthlyIncome - totalSpending;
-
   return [
     {
       month: "Aug 2026",
@@ -189,7 +207,11 @@ export function getPredictions(): PredictionResult[] {
   ];
 }
 
-export function getSpendingInsights(): AIInsight[] {
+export async function getSpendingInsights(): Promise<AIInsight[]> {
+  if (isAIReal()) {
+    const result = await apiCall<{ insights: AIInsight[] }>("/api/insights", {});
+    if (result?.insights) return result.insights;
+  }
   return [
     {
       id: "insight-1",
@@ -240,14 +262,13 @@ export function getSpendingInsights(): AIInsight[] {
   ];
 }
 
-export function getMultiToolResponse(query: string): {
+export async function getMultiToolResponse(query: string): Promise<{
   tools: AIAgentTool[];
   guruDebate?: GuruDebate;
   summary: string;
-} {
+}> {
   const tools = detectTools(query);
-  const debate = getGuruDebate(query);
-
+  const debate = await getGuruDebate(query);
   let summary = debate.summary;
   if (tools.includes("expense-extraction") || tools.includes("transaction-search")) {
     const recentTx = MOCK_TRANSACTIONS.slice(0, 3);
@@ -257,6 +278,5 @@ export function getMultiToolResponse(query: string): {
     const total = EXPENSE_BREAKDOWN.reduce((s, c) => s + c.amount, 0);
     summary += ` Your total monthly spending is ₹${(total / 1000).toFixed(0)}K.`;
   }
-
   return { tools, guruDebate: debate, summary };
 }

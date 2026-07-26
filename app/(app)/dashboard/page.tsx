@@ -12,12 +12,17 @@ import { QuickInsights } from "@/features/dashboard/widgets/quick-insights";
 import { DashboardPersonaCard } from "@/features/dashboard/widgets/dashboard-persona-card";
 import { InsightsList } from "@/features/advisor/insights-list";
 import { RecommendationsList } from "@/features/advisor/recommendations";
+import { HealthScoreCard } from "@/features/advisor/health-score";
 import { getSpendingInsights, getAIRecommendations } from "@/services/advisor-service";
+import { getFinancialHealthScore } from "@/services/health-service";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
-export default function DashboardPage() {
-  const insights = getSpendingInsights();
+export default async function DashboardPage() {
+  const [insights, healthScore] = await Promise.all([
+    getSpendingInsights(),
+    getFinancialHealthScore(),
+  ]);
   const recommendations = getAIRecommendations();
 
   return (
@@ -42,6 +47,8 @@ export default function DashboardPage() {
           </div>
           <DashboardPersonaCard />
         </div>
+
+        <HealthScoreCard score={healthScore} />
 
         <div className="grid gap-6 lg:grid-cols-2">
           <RecentTransactions />

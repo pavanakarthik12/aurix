@@ -36,12 +36,12 @@ export function RegisterForm() {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isSubmitSuccessful },
   } = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
   });
 
-  async function onSubmit() {
+  async function onSubmit(data: RegisterValues) {
     await new Promise((resolve) => setTimeout(resolve, 900));
     toast.success("Account created — let's set up your financial persona");
     router.push("/onboarding");
@@ -112,7 +112,7 @@ export function RegisterForm() {
         <p className="-mt-3 text-xs text-destructive">{errors.terms.message}</p>
       )}
 
-      <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+      <Button type="submit" className="w-full" size="lg" disabled={isSubmitting || isSubmitSuccessful}>
         {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
         Create account
       </Button>
