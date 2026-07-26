@@ -1,4 +1,5 @@
-import { categorizeExpense } from "@/lib/categorize";
+import { categorizeExpenseMl } from "@/lib/ml-categorize";
+import { parseFlexibleDate } from "@/lib/dates";
 import type { ExpenseCategory } from "@/types/finance";
 
 export interface ParsedExpense {
@@ -12,10 +13,6 @@ export interface ParsedExpense {
 
 const AMOUNT_PATTERN = /(?:₹|rs\.?|inr)\s?([\d,]+(?:\.\d{1,2})?)/gi;
 const BARE_NUMBER_PATTERN = /\b\d[\d,]{1,9}(?:\.\d{1,2})?\b/g;
-const DATE_SLASH_PATTERN = /\b(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})\b/;
-const DATE_ISO_PATTERN = /\b(\d{4})-(\d{2})-(\d{2})\b/;
-const DATE_MONTH_NAME_PATTERN =
-  /\b(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{2,4})\b/i;
 
 const NOISE_LINES = [
   "paid", "successful", "payment", "transaction", "upi", "ref no",
@@ -44,55 +41,6 @@ function extractAmount(text: string): number | null {
   return bareAmounts.length > 0 ? Math.max(...bareAmounts) : null;
 }
 
-function pad2(n: number) {
-  return n.toString().padStart(2, "0");
-}
-
-function toIsoDate(year: number, month: number, day: number): string | null {
-  const fullYear = year < 100 ? 2000 + year : year;
-  const date = new Date(Date.UTC(fullYear, month - 1, day));
-  if (
-    date.getUTCFullYear() !== fullYear ||
-    date.getUTCMonth() !== month - 1 ||
-    date.getUTCDate() !== day
-  ) {
-    return null;
-  }
-  return `${fullYear}-${pad2(month)}-${pad2(day)}`;
-}
-
-function extractDate(text: string): string {
-  const today = new Date().toISOString().slice(0, 10);
-
-  const isoMatch = text.match(DATE_ISO_PATTERN);
-  if (isoMatch) {
-    const iso = toIsoDate(Number(isoMatch[1]), Number(isoMatch[2]), Number(isoMatch[3]));
-    if (iso) return iso;
-  }
-
-  const monthNameMatch = text.match(DATE_MONTH_NAME_PATTERN);
-  if (monthNameMatch) {
-    const parsed = new Date(`${monthNameMatch[1]} ${monthNameMatch[2]} ${monthNameMatch[3]}`);
-    if (!Number.isNaN(parsed.getTime())) {
-      return parsed.toISOString().slice(0, 10);
-    }
-  }
-
-  const slashMatch = text.match(DATE_SLASH_PATTERN);
-  if (slashMatch) {
-    // Indian receipts use DD/MM/YYYY — day first, not the US MM/DD/YYYY that
-    // JS's Date constructor assumes for slash-separated strings. Try that
-    // reading first and only fall back to MM/DD/YYYY if it's not a valid date.
-    const first = Number(slashMatch[1]);
-    const second = Number(slashMatch[2]);
-    const year = Number(slashMatch[3]);
-    const iso = toIsoDate(year, second, first) ?? toIsoDate(year, first, second);
-    if (iso) return iso;
-  }
-
-  return today;
-}
-
 const STANDALONE_NOISE_WORDS = new Set(["to", "from"]);
 
 function extractMerchant(text: string): string {
@@ -117,8 +65,8 @@ function extractMerchant(text: string): string {
 export function parseReceiptText(rawText: string): ParsedExpense {
   const amount = extractAmount(rawText);
   const merchant = extractMerchant(rawText);
-  const date = extractDate(rawText);
-  const category = categorizeExpense(`${merchant} ${rawText}`);
+  const date = parseFlexibleDate(rawText) ?? new Date().toISOString().slice(0, 10);
+  const { category } = categorizeExpenseMl(`${merchant} ${rawText}`);
 
   let confidence: ParsedExpense["confidence"] = "low";
   if (amount !== null && merchant !== "Unknown Merchant") {

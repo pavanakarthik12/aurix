@@ -3,7 +3,7 @@ import { persist } from "zustand/middleware";
 import type { Transaction } from "@/types/finance";
 import { MOCK_TRANSACTIONS } from "@/lib/mock-data";
 
-export type TransactionSource = "manual" | "screenshot" | "splitwise";
+export type TransactionSource = "manual" | "screenshot" | "statement" | "splitwise";
 
 export interface TrackedTransaction extends Transaction {
   source: TransactionSource;
@@ -12,7 +12,12 @@ export interface TrackedTransaction extends Transaction {
 interface ExpensesState {
   transactions: TrackedTransaction[];
   addTransaction: (tx: Omit<TrackedTransaction, "id">) => void;
+  addTransactions: (txs: Omit<TrackedTransaction, "id">[]) => void;
   removeTransaction: (id: string) => void;
+}
+
+function withId(tx: Omit<TrackedTransaction, "id">, salt: number): TrackedTransaction {
+  return { ...tx, id: `t-${Date.now()}-${salt}-${Math.random().toString(36).slice(2, 7)}` };
 }
 
 export const useExpensesStore = create<ExpensesState>()(
@@ -21,10 +26,11 @@ export const useExpensesStore = create<ExpensesState>()(
       transactions: MOCK_TRANSACTIONS.map((tx) => ({ ...tx, source: "manual" as const })),
       addTransaction: (tx) =>
         set((state) => ({
-          transactions: [
-            { ...tx, id: `t-${Date.now()}-${Math.random().toString(36).slice(2, 7)}` },
-            ...state.transactions,
-          ],
+          transactions: [withId(tx, 0), ...state.transactions],
+        })),
+      addTransactions: (txs) =>
+        set((state) => ({
+          transactions: [...txs.map((tx, i) => withId(tx, i)), ...state.transactions],
         })),
       removeTransaction: (id) =>
         set((state) => ({

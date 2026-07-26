@@ -1,0 +1,95 @@
+"use client";
+
+import { motion } from "framer-motion";
+import {
+  TrendingUp,
+  PiggyBank,
+  CreditCard,
+  Target,
+  Wallet,
+  Repeat,
+  ChevronRight,
+  BookOpen,
+} from "lucide-react";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import type { AIRecommendation } from "@/types/finance";
+
+interface RecommendationsListProps {
+  recommendations: AIRecommendation[];
+}
+
+const CATEGORY_MAP: Record<string, { icon: React.ElementType; label: string }> = {
+  savings: { icon: PiggyBank, label: "Savings" },
+  spending: { icon: CreditCard, label: "Spending" },
+  investment: { icon: TrendingUp, label: "Investment" },
+  debt: { icon: Wallet, label: "Debt" },
+  budget: { icon: Target, label: "Budget" },
+  subscription: { icon: Repeat, label: "Subscription" },
+};
+
+const IMPACT_STYLES: Record<string, "destructive" | "warning" | "secondary"> = {
+  high: "destructive",
+  medium: "warning",
+  low: "secondary",
+};
+
+export function RecommendationsList({ recommendations }: RecommendationsListProps) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>AI Recommendations</CardTitle>
+        <CardDescription>Top personalized actions for this month</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {recommendations.map((rec, i) => {
+          const cat = CATEGORY_MAP[rec.category] || CATEGORY_MAP.budget;
+          const CatIcon = cat.icon;
+          return (
+            <motion.div
+              key={rec.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.08 }}
+              className="group rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent"
+            >
+              <div className="flex items-start gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <CatIcon className="h-4.5 w-4.5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{rec.title}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{rec.description}</p>
+                    </div>
+                    <Badge variant={IMPACT_STYLES[rec.impact]} className="shrink-0 text-[10px]">
+                      {rec.impact}
+                    </Badge>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {rec.potentialSavings > 0 && (
+                      <Badge variant="success" className="gap-1 text-[10px]">
+                        <PiggyBank className="h-3 w-3" />
+                        ₹{(rec.potentialSavings / 1000).toFixed(1)}K/yr
+                      </Badge>
+                    )}
+                    {rec.sourceBook && (
+                      <Badge variant="outline" className="gap-1 text-[10px]">
+                        <BookOpen className="h-3 w-3" />
+                        {rec.sourceBook}
+                      </Badge>
+                    )}
+                    <Badge variant="muted" className="text-[10px]">
+                      {rec.confidence}% confidence
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          );
+        })}
+      </CardContent>
+    </Card>
+  );
+}

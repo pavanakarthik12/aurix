@@ -21,6 +21,7 @@ const CATEGORY_ICONS: Record<ExpenseCategory, LucideIcon> = {
 const SOURCE_LABELS: Record<TrackedTransaction["source"], string> = {
   manual: "Manual",
   screenshot: "Screenshot",
+  statement: "Bank Statement",
   splitwise: "Splitwise",
 };
 

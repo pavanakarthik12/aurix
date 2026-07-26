@@ -7,6 +7,7 @@ import {
   FileBarChart,
   Settings,
   UserRound,
+  BookOpen,
 } from "lucide-react";
 
 export type NavItem = {
@@ -20,6 +21,7 @@ export const PRIMARY_NAV: NavItem[] = [
   { label: "Expenses", href: "/expenses", icon: Receipt },
   { label: "Financial Goals", href: "/goals", icon: Target },
   { label: "AI Advisor", href: "/advisor", icon: Sparkles },
+  { label: "Knowledge Base", href: "/knowledge-base", icon: BookOpen },
   { label: "Reports", href: "/reports", icon: FileBarChart },
 ];
 

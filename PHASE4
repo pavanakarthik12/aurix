@@ -1,0 +1,721 @@
+# Aurix – Phase 4 Prompt
+## Intelligent Financial Advisor Engine (Track B)
+
+You are a Principal AI Engineer, Senior Backend Architect, RAG Specialist, Machine Learning Engineer, and FinTech Product Engineer.
+
+Your task is to build **Phase 4** of **Aurix**, an enterprise-grade AI Financial Advisor & Expense Manager.
+
+This phase transforms Aurix from an expense tracker into a true **AI Financial Advisor** capable of understanding multiple financial data sources, learning user spending behavior, retrieving financial knowledge from books, and providing intelligent, personalized financial recommendations.
+
+This is **NOT** a demo.
+This should be architected like a real production fintech platform.
+
+---
+
+# Primary Goal
+
+Transform Aurix into an intelligent financial advisor with multi-source financial understanding.
+
+The AI should answer questions like
+
+> Can I afford this purchase?
+
+> Am I overspending?
+
+> Which financial guru would recommend this?
+
+> How healthy are my finances?
+
+> What should I improve this month?
+
+using both
+
+- User financial data
+- Financial books
+- Financial articles
+- Expense history
+- Budgets
+- Goals
+- AI reasoning
+
+---
+
+# Tech Stack
+
+## Backend
+
+FastAPI
+
+Python
+
+LangChain
+
+LangGraph
+
+Pydantic
+
+SQLAlchemy
+
+Celery
+
+Redis
+
+---
+
+## AI
+
+Gemini 2.5 Pro / GPT-4.1
+
+Sentence Transformers
+
+bge-large-en-v1.5
+
+FAISS / ChromaDB
+
+---
+
+## Database
+
+PostgreSQL
+
+---
+
+## Frontend
+
+Next.js
+
+TypeScript
+
+TailwindCSS
+
+shadcn/ui
+
+Framer Motion
+
+Recharts
+
+---
+
+# Feature 1
+## Multi Tool Financial AI Agent
+
+Create an intelligent AI Agent capable of choosing the correct tool automatically.
+
+Available tools
+
+Expense Extraction
+
+Budget Planner
+
+Financial Advisor
+
+Goal Tracker
+
+Financial Health Score
+
+Book Search
+
+Transaction Search
+
+Splitwise Search
+
+Investment Advisor
+
+Savings Planner
+
+Future Prediction
+
+The AI should decide which tool(s) to call automatically.
+
+Example
+
+User
+
+"I spent too much this month."
+
+AI should
+
+→ Fetch expenses
+
+→ Analyze categories
+
+→ Compare previous months
+
+→ Calculate budget
+
+→ Generate advice
+
+without the user choosing a tool.
+
+---
+
+# Feature 2
+## Financial Knowledge RAG
+
+Users can upload
+
+PDF
+
+DOCX
+
+TXT
+
+Articles
+
+Research Papers
+
+Financial Blogs
+
+Books
+
+Examples
+
+Rich Dad Poor Dad
+
+Psychology of Money
+
+The Intelligent Investor
+
+The Warren Buffett Way
+
+I Will Teach You To Be Rich
+
+Think and Grow Rich
+
+The AI should
+
+Extract
+
+Chunk
+
+Embed
+
+Store
+
+Retrieve
+
+Cite sources
+
+Every answer must include
+
+Source
+
+Page Number (when available)
+
+Confidence Score
+
+---
+
+# Feature 3
+## Guru Comparison Engine
+
+Instead of giving one answer,
+
+Aurix should compare advice.
+
+Example
+
+Question
+
+Should I buy an iPhone?
+
+Aurix
+
+Warren Buffett
+
+"Only if it creates long-term value."
+
+Robert Kiyosaki
+
+"Assets first, liabilities later."
+
+Ramit Sethi
+
+"If it fits your guilt-free spending budget."
+
+Aurix Recommendation
+
+"Considering your current savings,
+wait two months before purchasing."
+
+This should become one of Aurix's flagship features.
+
+---
+
+# Feature 4
+## Multi Source Expense Processing
+
+Expenses can come from
+
+Receipt Images
+
+Bank Statements
+
+CSV
+
+Manual Entry
+
+Splitwise
+
+Future APIs
+
+Every expense should become a normalized transaction.
+
+Fields
+
+Merchant
+
+Amount
+
+Category
+
+Subcategory
+
+Date
+
+Payment Method
+
+Location
+
+Confidence Score
+
+Source Type
+
+---
+
+# Feature 5
+## Splitwise Integration
+
+Integrate Splitwise API.
+
+Capabilities
+
+Import Expenses
+
+Friends
+
+Groups
+
+Balances
+
+Debt
+
+Monthly Spending
+
+AI should answer
+
+Who owes me money?
+
+How much have I spent with friends?
+
+Who spends the most?
+
+Group analytics
+
+Debt reminders
+
+---
+
+# Feature 6
+## Spending Pattern Recognition
+
+Build an ML-based spending analyzer.
+
+Detect
+
+Weekend spending
+
+Night spending
+
+Impulse purchases
+
+Food addiction
+
+Subscription overload
+
+Travel frequency
+
+Entertainment spikes
+
+Shopping habits
+
+Create monthly summaries.
+
+---
+
+# Feature 7
+## Budget Recommendation Engine
+
+Automatically create budgets.
+
+Example
+
+Income
+
+$2,500
+
+Rent
+
+Food
+
+Shopping
+
+Travel
+
+Savings
+
+Emergency Fund
+
+The AI should continuously adjust recommendations.
+
+---
+
+# Feature 8
+## Custom Category Learning
+
+If the user repeatedly changes
+
+Coffee
+
+↓
+
+Work Expense
+
+Aurix should learn automatically.
+
+Future transactions should classify correctly.
+
+Store custom learning per user.
+
+---
+
+# Feature 9
+## Financial Health Score
+
+Create an overall financial score.
+
+Score Range
+
+0–100
+
+Factors
+
+Savings Rate
+
+Debt Ratio
+
+Emergency Fund
+
+Expense Stability
+
+Budget Adherence
+
+Goal Progress
+
+Income Growth
+
+Investment Ratio
+
+Display
+
+Circular Progress
+
+Color coded
+
+Explanation
+
+Recommendations
+
+Monthly trend
+
+---
+
+# Feature 10
+## Expense Anomaly Detection
+
+Detect
+
+Unusual spending
+
+Duplicate payments
+
+Abnormal subscriptions
+
+Fraud-like patterns
+
+Very large transactions
+
+Unexpected spending categories
+
+Notify users immediately.
+
+---
+
+# Feature 11
+## AI Spending Insights
+
+Instead of charts,
+
+Generate natural language insights.
+
+Example
+
+"You spent 18% more on food this month."
+
+"Transportation costs decreased by 24%."
+
+"Netflix has increased your subscription expenses."
+
+"Weekend shopping accounts for 38% of your discretionary spending."
+
+---
+
+# Feature 12
+## Financial Timeline
+
+Create a timeline.
+
+Shows
+
+Expenses
+
+Savings
+
+Goals
+
+Investments
+
+Bills
+
+Major purchases
+
+Upcoming payments
+
+Interactive.
+
+---
+
+# Feature 13
+## Smart Dashboard
+
+Redesign dashboard.
+
+Widgets
+
+Monthly Spending
+
+Monthly Savings
+
+Financial Health
+
+Goals
+
+Category Breakdown
+
+Recent Expenses
+
+Upcoming Bills
+
+Splitwise
+
+Insights
+
+Top Merchant
+
+Budget
+
+Health Score
+
+Everything interactive.
+
+---
+
+# Feature 14
+## AI Recommendations
+
+Every dashboard visit should generate
+
+Top 5 recommendations.
+
+Examples
+
+Increase savings by $100
+
+Reduce food spending
+
+Cancel unused subscriptions
+
+Delay large purchase
+
+Increase SIP contribution
+
+Personalized only.
+
+---
+
+# Feature 15
+## Predictive Insights
+
+Predict
+
+Next month's expenses
+
+Savings
+
+Cash flow
+
+Budget overflow
+
+Goal completion
+
+Investment growth
+
+Show confidence score.
+
+---
+
+# Feature 16
+## Explainable AI
+
+Every recommendation should answer
+
+Why?
+
+How was this calculated?
+
+Which transactions influenced it?
+
+Which book supports this?
+
+Confidence level
+
+Never provide black-box answers.
+
+---
+
+# Feature 17
+## Beautiful UI
+
+No gradients.
+
+Premium fintech appearance.
+
+Hover cards.
+
+Animated charts.
+
+Professional spacing.
+
+Modern tables.
+
+Responsive layouts.
+
+Not AI-looking.
+
+Looks like enterprise software.
+
+---
+
+# Feature 18
+## Architecture
+
+Separate modules
+
+expense-service
+
+budget-service
+
+advisor-service
+
+rag-service
+
+splitwise-service
+
+goal-service
+
+analytics-service
+
+health-service
+
+recommendation-service
+
+prediction-service
+
+notification-service
+
+Everything modular.
+
+---
+
+# Performance
+
+Lazy loading
+
+Caching
+
+Background embedding generation
+
+Pagination
+
+Optimized SQL
+
+Debounced search
+
+Streaming AI responses
+
+---
+
+# Security
+
+Encrypted sensitive data
+
+Role-based access
+
+Protected APIs
+
+Rate limiting
+
+Input validation
+
+Secure file uploads
+
+---
+
+# Code Quality
+
+Strict TypeScript
+
+Strict Python typing
+
+SOLID principles
+
+Repository Pattern
+
+Service Layer
+
+Clean Architecture
+
+Reusable components
+
+Reusable hooks
+
+Reusable APIs
+
+Zero duplicated code
+
+---
+
+# Success Criteria
+
+At the end of this phase, Aurix should feel like a real AI-powered financial operating system rather than an expense tracker.
+
+A user should be able to upload financial books, bank statements, receipts, and Splitwise data, then ask natural-language questions such as:
+
+- "Can I afford a vacation next month?"
+- "How financially healthy am I?"
+- "What would Warren Buffett recommend based on my spending?"
+- "Why is my Financial Health Score only 72?"
+- "Where am I wasting the most money?"
+- "Predict my spending for next month."
+
+Aurix should answer accurately by combining personal financial data, retrieved knowledge from uploaded financial content, intelligent AI reasoning, and transparent explanations. Every response should be personalized, explainable, actionable, and backed by the user's own financial information wherever possible.

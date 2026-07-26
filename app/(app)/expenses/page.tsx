@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TransactionList } from "@/features/expenses/transaction-list";
 import { ScreenshotUpload } from "@/features/expenses/screenshot-upload";
+import { StatementUpload } from "@/features/expenses/statement-upload";
 import { useExpensesStore } from "@/store/expenses-store";
 
 export default function ExpensesPage() {
@@ -35,6 +36,7 @@ export default function ExpensesPage() {
             <TabsList>
               <TabsTrigger value="all">All</TabsTrigger>
               <TabsTrigger value="screenshots">From screenshots</TabsTrigger>
+              <TabsTrigger value="statement">Bank statement</TabsTrigger>
               <TabsTrigger value="manual">Manual entry</TabsTrigger>
               <TabsTrigger value="splitwise">Splitwise</TabsTrigger>
             </TabsList>
@@ -46,6 +48,13 @@ export default function ExpensesPage() {
               <TransactionList
                 transactions={transactions.filter((t) => t.source === "screenshot")}
                 emptyLabel="No expenses extracted from screenshots yet."
+              />
+            </TabsContent>
+            <TabsContent value="statement" className="space-y-6">
+              <StatementUpload />
+              <TransactionList
+                transactions={transactions.filter((t) => t.source === "statement")}
+                emptyLabel="No expenses imported from bank statements yet."
               />
             </TabsContent>
             <TabsContent value="manual">

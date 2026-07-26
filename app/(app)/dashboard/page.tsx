@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 import { OverviewStats } from "@/features/dashboard/widgets/overview-stats";
 import { SpendingTrendChart } from "@/features/dashboard/widgets/spending-trend-chart";
 import { ExpenseCategories } from "@/features/dashboard/widgets/expense-categories";
@@ -9,11 +10,16 @@ import { GoalsWidget } from "@/features/dashboard/widgets/goals-widget";
 import { RecentTransactions } from "@/features/dashboard/widgets/recent-transactions";
 import { QuickInsights } from "@/features/dashboard/widgets/quick-insights";
 import { DashboardPersonaCard } from "@/features/dashboard/widgets/dashboard-persona-card";
-import { Plus } from "lucide-react";
+import { InsightsList } from "@/features/advisor/insights-list";
+import { RecommendationsList } from "@/features/advisor/recommendations";
+import { getSpendingInsights, getAIRecommendations } from "@/services/advisor-service";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
 export default function DashboardPage() {
+  const insights = getSpendingInsights();
+  const recommendations = getAIRecommendations();
+
   return (
     <div className="mx-auto max-w-7xl">
       <PageHeader
@@ -47,6 +53,11 @@ export default function DashboardPage() {
             <GoalsWidget />
           </div>
           <BudgetWidget />
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <InsightsList insights={insights} />
+          <RecommendationsList recommendations={recommendations} />
         </div>
 
         <QuickInsights />

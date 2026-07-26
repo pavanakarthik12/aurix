@@ -54,3 +54,110 @@ export interface FinancialGoal {
   targetDate: string;
   type: FinancialGoalType;
 }
+
+export type AIAgentTool =
+  | "expense-extraction"
+  | "budget-planner"
+  | "financial-advisor"
+  | "goal-tracker"
+  | "health-score"
+  | "book-search"
+  | "transaction-search"
+  | "splitwise-search"
+  | "investment-advisor"
+  | "savings-planner"
+  | "future-prediction";
+
+export interface GuruResponse {
+  guruId: string;
+  guruName: string;
+  emoji: string;
+  philosophy: string;
+  principle: string;
+  advice: string;
+}
+
+export interface GuruDebate {
+  query: string;
+  responses: GuruResponse[];
+  summary: string;
+  confidence: number;
+}
+
+export interface FinancialHealthScore {
+  overall: number;
+  savingsRate: number;
+  debtRatio: number;
+  emergencyFund: number;
+  expenseStability: number;
+  budgetAdherence: number;
+  goalProgress: number;
+  incomeGrowth: number;
+  investmentRatio: number;
+  trend: "up" | "down" | "stable";
+  change: number;
+  explanation: string;
+  recommendations: string[];
+}
+
+export interface RAGDocument {
+  id: string;
+  title: string;
+  type: "pdf" | "docx" | "txt" | "article";
+  source: string;
+  uploadedAt: string;
+  chunkCount: number;
+  status: "processing" | "ready" | "error";
+}
+
+export interface RAGSearchResult {
+  documentId: string;
+  documentTitle: string;
+  chunk: string;
+  pageNumber?: number;
+  confidence: number;
+  source: string;
+}
+
+export interface AIRecommendation {
+  id: string;
+  title: string;
+  description: string;
+  category: "savings" | "spending" | "investment" | "debt" | "budget" | "subscription";
+  impact: "high" | "medium" | "low";
+  potentialSavings: number;
+  reasoning: string;
+  sourceBook?: string;
+  sourceAuthor?: string;
+  confidence: number;
+}
+
+export interface TimelineEvent {
+  id: string;
+  type: "expense" | "savings" | "goal" | "investment" | "bill" | "purchase" | "payment";
+  title: string;
+  amount: number;
+  date: string;
+  category?: string;
+  status?: "completed" | "upcoming" | "overdue";
+  description?: string;
+}
+
+export interface AIInsight {
+  id: string;
+  title: string;
+  description: string;
+  metric?: { value: string; direction: "up" | "down"; positive: boolean };
+  type: "spending" | "savings" | "subscription" | "pattern" | "anomaly";
+  severity: "info" | "warning" | "critical";
+}
+
+export interface PredictionResult {
+  month: string;
+  predictedExpenses: number;
+  predictedSavings: number;
+  confidence: number;
+  cashFlow: number;
+  budgetOverflow: boolean;
+  goalCompletionPercent: number;
+}

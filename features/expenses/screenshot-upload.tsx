@@ -16,6 +16,14 @@ import type { ExpenseCategory } from "@/types/finance";
 
 type Stage = "idle" | "processing" | "review" | "done";
 
+const SUPPORTED_IMAGE_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/bmp",
+  "image/gif",
+]);
+
 export function ScreenshotUpload() {
   const [stage, setStage] = useState<Stage>("idle");
   const [ocrProgress, setOcrProgress] = useState(0);
@@ -33,8 +41,8 @@ export function ScreenshotUpload() {
   }, [previewUrl]);
 
   const handleFile = useCallback(async (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      setError("Please upload an image file (screenshot of a payment or receipt).");
+    if (!SUPPORTED_IMAGE_TYPES.has(file.type)) {
+      setError("Please upload a PNG, JPG, WEBP, BMP, or GIF screenshot of a payment or receipt.");
       return;
     }
 
@@ -104,7 +112,7 @@ export function ScreenshotUpload() {
             Drag a payment screenshot here, or click to browse
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            PNG or JPG — UPI receipts, bank SMS screenshots, or store receipts
+            PNG, JPG, WEBP, BMP, or GIF — UPI receipts, bank SMS screenshots, or store receipts
           </p>
         </div>
         <Button size="sm" onClick={() => inputRef.current?.click()}>
@@ -113,7 +121,7 @@ export function ScreenshotUpload() {
         <input
           ref={inputRef}
           type="file"
-          accept="image/*"
+          accept="image/png,image/jpeg,image/webp,image/bmp,image/gif"
           className="hidden"
           onChange={onFileChange}
         />
