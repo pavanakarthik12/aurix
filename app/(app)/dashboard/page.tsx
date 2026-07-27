@@ -1,4 +1,6 @@
-import type { Metadata } from "next";
+"use client";
+
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -15,15 +17,18 @@ import { RecommendationsList } from "@/features/advisor/recommendations";
 import { HealthScoreCard } from "@/features/advisor/health-score";
 import { getSpendingInsights, getAIRecommendations } from "@/services/advisor-service";
 import { getFinancialHealthScore } from "@/services/health-service";
+import type { AIInsight, AIRecommendation, FinancialHealthScore } from "@/types/finance";
 
-export const metadata: Metadata = { title: "Dashboard" };
+export default function DashboardPage() {
+  const [insights, setInsights] = useState<AIInsight[]>([]);
+  const [recommendations, setRecommendations] = useState<AIRecommendation[]>([]);
+  const [healthScore, setHealthScore] = useState<FinancialHealthScore | null>(null);
 
-export default async function DashboardPage() {
-  const [insights, healthScore] = await Promise.all([
-    getSpendingInsights(),
-    getFinancialHealthScore(),
-  ]);
-  const recommendations = getAIRecommendations();
+  useEffect(() => {
+    getSpendingInsights().then(setInsights).catch(() => {});
+    setRecommendations(getAIRecommendations());
+    getFinancialHealthScore().then(setHealthScore).catch(() => {});
+  }, []);
 
   return (
     <div className="mx-auto max-w-7xl">
@@ -31,7 +36,7 @@ export default async function DashboardPage() {
         title="Good morning"
         description="Here's what's happening with your finances today."
         actions={
-          <Button size="sm">
+          <Button size="sm" onClick={() => window.location.href = "/expenses"}>
             <Plus className="h-4 w-4" />
             Add expense
           </Button>
@@ -48,7 +53,7 @@ export default async function DashboardPage() {
           <DashboardPersonaCard />
         </div>
 
-        <HealthScoreCard score={healthScore} />
+        {healthScore && <HealthScoreCard score={healthScore} />}
 
         <div className="grid gap-6 lg:grid-cols-2">
           <RecentTransactions />

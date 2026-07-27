@@ -1,419 +1,52 @@
-# Fix Aurix AI Advisor – Remove Generic, Synthetic & Mock Responses
+# Aurix – Implement Advanced Financial Intelligence (Production Ready)
 
-You are a Principal AI Engineer, Prompt Engineer, FinTech Expert, and RAG Architect.
+Implement the following features using **real user data only**. Do **not** use mock data, synthetic responses, placeholders, or hardcoded values.
 
-The current AI responses in Aurix are **too generic, synthetic, and often feel like template responses**. They do not provide real financial reasoning or actionable advice.
+### 1. Advanced Expense Pattern Recognition & Anomaly Detection
+Analyze transaction history to identify:
+- Unusual spending spikes
+- Duplicate transactions
+- Recurring subscriptions
+- Seasonal spending trends
+- Merchant and category trends
+- Budget overruns
+- Abnormal transactions using statistical/ML methods (Z-score, IQR, Isolation Forest, etc.)
 
-Your task is to completely redesign the AI advisor so that every response is personalized, data-driven, explainable, and useful.
-
----
-
-# Current Problems
-
-The AI currently:
-
-- Gives generic advice.
-- Repeats the same financial tips.
-- Ignores the user's actual financial data.
-- Doesn't analyze spending history.
-- Doesn't use uploaded financial books effectively.
-- Doesn't explain why it made a recommendation.
-- Doesn't provide calculations.
-- Doesn't prioritize recommendations.
-- Doesn't ask follow-up questions when data is missing.
-- Sometimes falls back to mock/template responses.
-
-This is unacceptable.
+Provide explanations for every detected anomaly and suggest corrective actions based on actual financial data.
 
 ---
 
-# Goal
+### 2. Automated Categorization with Custom Category Learning
+Automatically categorize expenses using AI/ML and merchant history.
 
-Aurix should behave like a **real Certified Financial Planner (CFP)** or experienced financial consultant.
-
-Every answer should be based on:
-
-- User's transactions
-- Income
-- Spending history
-- Budget
-- Goals
-- Financial Health Score
-- Uploaded financial books (RAG)
-- Previous conversations
-- Category trends
-- Monthly patterns
-
-Never generate advice without first analyzing available data.
+- Learn from user corrections.
+- Create custom categories.
+- Improve categorization accuracy over time.
+- Apply learned categories to future transactions automatically.
+- Support expenses from OCR, CSV, manual entry, and Splitwise.
 
 ---
 
-# No Generic Responses
+### 3. Comprehensive Financial Health Score
+Generate a dynamic Financial Health Score (0–100) using real financial metrics, including:
+- Savings rate
+- Budget adherence
+- Cash flow
+- Spending consistency
+- Debt ratio
+- Emergency fund coverage
+- Goal progress
+- Expense trends
 
-Never say things like:
-
-❌ Save more money.
-
-❌ Spend less.
-
-❌ Create a budget.
-
-❌ Reduce unnecessary expenses.
-
-❌ Invest wisely.
-
-These responses are useless.
-
-Every recommendation must be specific.
-
-Example
-
-Instead of
-
-> "Reduce food spending."
-
-Say
-
-> "You spent $482 on food this month compared to your 6-month average of $315 (53% increase). Most of the increase came from food delivery between Friday and Sunday evenings. Reducing food delivery by $40/week would save approximately $2,080 per year."
+Display the score with a detailed breakdown, strengths, weaknesses, improvement suggestions, and monthly progress tracking. Recalculate automatically whenever new transactions are added.
 
 ---
 
-# Response Structure
-
-Every recommendation must contain
-
-## 1. Current Situation
-
-Explain exactly what the AI found.
-
-Example
-
-- Spending increased by 14%
-- Entertainment exceeded budget by 22%
-- Savings dropped by 8%
-
----
-
-## 2. Evidence
-
-Show calculations.
-
-Example
-
-Dining
-
-Current Month
-
-$480
-
-Average
-
-$330
-
-Difference
-
-+45%
-
----
-
-## 3. Why It Matters
-
-Explain financial impact.
-
----
-
-## 4. Recommendation
-
-Concrete action.
-
-Example
-
-Limit food delivery to twice a week.
-
----
-
-## 5. Expected Result
-
-Estimate savings.
-
-Example
-
-Annual Savings
-
-$2,100
-
----
-
-## 6. Confidence Score
-
-Example
-
-92%
-
-Explain why.
-
----
-
-# Ground Every Answer
-
-The AI must never answer without checking
-
-- transaction database
-- budget
-- goals
-- uploaded books
-- health score
-
-If no data exists,
-
-say so honestly.
-
-Example
-
-"I don't yet have enough spending history to recommend a monthly budget. Upload at least one month of expenses or connect your expense sources."
-
-Do NOT invent values.
-
----
-
-# RAG First
-
-Before generating financial advice,
-
-search uploaded financial books.
-
-Retrieve
-
-- relevant passages
-- principles
-- citations
-
-Then combine
-
-Book Knowledge
-
-+
-
-User Financial Data
-
-+
-
-LLM Reasoning
-
-Every recommendation should include
-
-Source
-
-Book
-
-or
-
-"No supporting financial literature found."
-
----
-
-# Financial Calculations
-
-Actually calculate
-
-Savings Rate
-
-Debt Ratio
-
-Budget Variance
-
-Monthly Growth
-
-Expense Growth
-
-Emergency Fund Coverage
-
-Goal Progress
-
-Cash Flow
-
-Never estimate without calculation.
-
----
-
-# Multi-Step Reasoning
-
-Every financial question should follow
-
-User Question
-
-↓
-
-Retrieve Transactions
-
-↓
-
-Retrieve Goals
-
-↓
-
-Retrieve Budget
-
-↓
-
-Retrieve Health Score
-
-↓
-
-Retrieve Financial Books
-
-↓
-
-Analyze
-
-↓
-
-Calculate
-
-↓
-
-Generate Advice
-
-Never skip these steps.
-
----
-
-# Ask Follow-up Questions
-
-If required data is missing,
-
-ask intelligent questions.
-
-Example
-
-"What is your monthly income?"
-
-instead of guessing.
-
----
-
-# Prioritize Recommendations
-
-Always rank advice
-
-High Impact
-
-Medium Impact
-
-Low Impact
-
-based on expected financial benefit.
-
----
-
-# Explain Every Recommendation
-
-Never hide reasoning.
-
-Every recommendation should answer
-
-Why?
-
-What data was used?
-
-How was it calculated?
-
-What assumptions were made?
-
----
-
-# Comparative Analysis
-
-Compare
-
-Current Month
-
-vs
-
-Previous Month
-
-vs
-
-3-Month Average
-
-vs
-
-6-Month Average
-
-Highlight meaningful changes.
-
----
-
-# Personalized Financial Coaching
-
-Understand
-
-- lifestyle
-- spending habits
-- financial goals
-- recurring expenses
-- income stability
-
-Adapt recommendations to each user.
-
-No two users should receive identical advice.
-
----
-
-# Conversation Memory
-
-Remember previous advice.
-
-Do not repeat the same recommendation every chat unless it is still relevant.
-
-Track
-
-- completed recommendations
-- ignored recommendations
-- progress
-
----
-
-# Output Style
-
-Professional.
-
-Supportive.
-
-Concise.
-
-Evidence-based.
-
-Avoid hype.
-
-Avoid generic AI phrases.
-
----
-
-# If Data Is Missing
-
-Never fabricate.
-
-Instead say
-
-"I currently don't have enough financial information to answer accurately."
-
-Then explain exactly what is needed.
-
----
-
-# Definition of Done
-
-The AI should be capable of answering questions like
-
-- Can I afford a vacation next month?
-- Why is my Financial Health Score low?
-- Where am I wasting the most money?
-- Which subscriptions should I cancel first?
-- What budget should I follow next month?
-- How much should I invest every month?
-- How can I reach my savings goal faster?
-
-using real financial data, real calculations, retrieved financial knowledge, and transparent reasoning.
-
-If any response is generic, repetitive, based on assumptions, or resembles a template, consider it a failure and improve the reasoning pipeline before returning the answer.
+### Requirements
+- No mock or synthetic data.
+- No hardcoded logic or responses.
+- Use PostgreSQL as the data source.
+- Integrate seamlessly with the AI Advisor, RAG system, Splitwise, OCR, CSV import, and manual expense entry.
+- All insights and recommendations must be based on actual user financial data and calculations.
+- Ensure the implementation is scalable, production-ready, and follows Clean Architecture and SOLID principles.
+```

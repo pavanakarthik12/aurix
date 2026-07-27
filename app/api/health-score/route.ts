@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAIReal } from "@/lib/config";
 import { chatWithAI } from "@/services/ai-client";
-import { EXPENSE_BREAKDOWN, SPENDING_TREND, MOCK_GOALS } from "@/lib/mock-data";
+import { EXPENSE_BREAKDOWN, SPENDING_TREND } from "@/lib/mock-data";
 import {
   generateExpenseAnalysis,
   totalSpending,
@@ -73,7 +73,7 @@ function calculateHealthScore(factors: HealthScoreFactors): {
   };
 }
 
-function calculateFactors(): HealthScoreFactors {
+function calculateFactors(goals?: FinancialGoal[]): HealthScoreFactors {
   const currentTotal = EXPENSE_BREAKDOWN.reduce((s, c) => s + c.amount, 0);
   const monthlyIncome = 75000;
   const savings = monthlyIncome - currentTotal;
@@ -85,9 +85,10 @@ function calculateFactors(): HealthScoreFactors {
   const spendingVariance = spendingValues.reduce((s, v) => s + Math.pow(v - spendingMean, 2), 0) / spendingValues.length;
   const stabilityScore = Math.max(0, 100 - spendingVariance / 500);
 
-  const goalProgressValues = MOCK_GOALS.map((g) =>
-    g.targetAmount > 0 ? (g.currentAmount / g.targetAmount) * 100 : 0
-  );
+  const goalsToCheck = goals || [];
+  const goalProgressValues = goalsToCheck.length > 0
+    ? goalsToCheck.map((g) => g.targetAmount > 0 ? (g.currentAmount / g.targetAmount) * 100 : 0)
+    : [72];
   const avgGoalProgress = goalProgressValues.length > 0
     ? goalProgressValues.reduce((s, v) => s + v, 0) / goalProgressValues.length
     : 0;
@@ -126,10 +127,10 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { transactions, goals } = body as {
       transactions?: { amount: number; category: string }[];
-      goals?: { current: number; target: number }[];
+      goals?: FinancialGoal[];
     };
 
-    const factors = calculateFactors();
+    const factors = calculateFactors(goals);
     const result = calculateHealthScore(factors);
 
     if (isAIReal()) {

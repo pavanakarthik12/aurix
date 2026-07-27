@@ -1,19 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Search,
-  Upload,
-  FileText,
-  BookOpen,
-  File as FileIcon,
-  Loader2,
-  ChevronRight,
-  ExternalLink,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
+  Search, Upload, FileText, BookOpen, File as FileIcon, Loader2,
+  ChevronRight, ExternalLink, Clock, CheckCircle2, AlertCircle, X,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,14 +12,12 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
 import type { RAGDocument, RAGSearchResult } from "@/types/finance";
 import { getRAGDocuments, searchKnowledgeBase } from "@/services/rag-service";
 
 const DOC_TYPE_ICONS: Record<string, React.ElementType> = {
-  pdf: FileText,
-  docx: FileText,
-  txt: FileIcon,
-  article: BookOpen,
+  pdf: FileText, docx: FileText, txt: FileIcon, article: BookOpen,
 };
 
 const STATUS_CONFIG: Record<string, { icon: React.ElementType; label: string; variant: "success" | "secondary" | "destructive" }> = {
@@ -40,10 +29,47 @@ const STATUS_CONFIG: Record<string, { icon: React.ElementType; label: string; va
 export function KnowledgeBaseUpload() {
   const [dragOver, setDragOver] = useState(false);
   const [documents, setDocuments] = useState<RAGDocument[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     getRAGDocuments().then(setDocuments);
   }, []);
+
+  const uploadFile = useCallback(async (file: File) => {
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/rag/documents", { method: "POST", body: formData });
+      if (!res.ok) throw new Error((await res.json()).error || "Upload failed");
+      const result = await res.json();
+      setDocuments((prev) => [result.document, ...prev]);
+      toast.success(`"${file.name}" uploaded successfully`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to upload document");
+    } finally {
+      setUploading(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const files = Array.from(e.dataTransfer.files);
+    files.forEach((f) => uploadFile(f));
+  }, [uploadFile]);
+
+  const handleFileSelect = useCallback(() => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".pdf,.docx,.txt";
+    input.multiple = false;
+    input.onchange = (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (files?.[0]) uploadFile(files[0]);
+    };
+    input.click();
+  }, [uploadFile]);
 
   return (
     <Card>
@@ -55,21 +81,24 @@ export function KnowledgeBaseUpload() {
         <div
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
-          onDrop={(e) => { e.preventDefault(); setDragOver(false); }}
+          onDrop={handleDrop}
           className={`flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed p-8 transition-colors ${
             dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
           }`}
         >
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <Upload className="h-6 w-6" />
+            {uploading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Upload className="h-6 w-6" />}
           </div>
           <div className="text-center">
             <p className="text-sm font-medium text-foreground">Drop files here or click to upload</p>
             <p className="text-xs text-muted-foreground">Supports PDF, DOCX, TXT — max 20MB each</p>
           </div>
-          <Button variant="outline" size="sm" disabled>
-            <Upload className="h-4 w-4" />
-            Upload Document
+          <Button variant="outline" size="sm" disabled={uploading} onClick={handleFileSelect}>
+            {uploading ? (
+              <><Loader2 className="h-4 w-4 animate-spin" /> Processing...</>
+            ) : (
+              <><Upload className="h-4 w-4" /> Upload Document</>
+            )}
           </Button>
         </div>
 
@@ -124,7 +153,7 @@ export function KnowledgeBaseSearch() {
     if (!query.trim()) return;
     setSearching(true);
     setSearched(true);
-    await new Promise((r) => setTimeout(r, 600));
+    await new Promise((r) => setTimeout(r, 400));
     const res = await searchKnowledgeBase(query);
     setResults(res);
     setSearching(false);
@@ -137,15 +166,8 @@ export function KnowledgeBaseSearch() {
         <CardDescription>Search across all uploaded financial documents</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <form
-          onSubmit={(e) => { e.preventDefault(); handleSearch(); }}
-          className="flex gap-2"
-        >
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search your financial library…"
-          />
+        <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="flex gap-2">
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search your financial library…" />
           <Button type="submit" size="icon" disabled={!query.trim() || searching}>
             {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
           </Button>
@@ -185,12 +207,8 @@ export function KnowledgeBaseSearch() {
               >
                 <div className="mb-2 flex items-center gap-2">
                   <Badge variant="outline" className="text-[10px]">{result.documentTitle}</Badge>
-                  {result.pageNumber && (
-                    <Badge variant="muted" className="text-[10px]">p.{result.pageNumber}</Badge>
-                  )}
-                  <Badge variant="secondary" className="ml-auto text-[10px]">
-                    {result.confidence}%
-                  </Badge>
+                  {result.pageNumber && <Badge variant="muted" className="text-[10px]">p.{result.pageNumber}</Badge>}
+                  <Badge variant="secondary" className="ml-auto text-[10px]">{result.confidence}%</Badge>
                 </div>
                 <p className="text-sm leading-relaxed text-foreground/85">&ldquo;{result.chunk}&rdquo;</p>
               </motion.div>

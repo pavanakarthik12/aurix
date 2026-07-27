@@ -425,3 +425,410 @@ export function searchFinancialBooks(query: string): { passage: string; source: 
   }
   return results.sort((a, b) => b.confidence - a.confidence).slice(0, 3);
 }
+
+export function isWeekend(dateStr: string): boolean {
+  const day = new Date(dateStr).getDay();
+  return day === 0 || day === 6;
+}
+
+export function analyzeWeekendVsWeekday(transactions: Transaction[]): {
+  weekendTotal: number;
+  weekdayTotal: number;
+  weekendCount: number;
+  weekdayCount: number;
+  weekendAvg: number;
+  weekdayAvg: number;
+  weekendPercentage: number;
+  insights: AIInsight[];
+} {
+  const weekend = transactions.filter((t) => isWeekend(t.date));
+  const weekday = transactions.filter((t) => !isWeekend(t.date));
+  const weekendTotal = weekend.reduce((s, t) => s + t.amount, 0);
+  const weekdayTotal = weekday.reduce((s, t) => s + t.amount, 0);
+  const insights: AIInsight[] = [];
+
+  if (transactions.length >= 5) {
+    const weekendPct = (weekend.length / transactions.length) * 100;
+    const weekendAmtPct = (weekendTotal / (weekendTotal + weekdayTotal || 1)) * 100;
+    if (weekendAmtPct > 40) {
+      insights.push({
+        id: `weekend-spike-${Date.now()}`,
+        title: `Weekend spending accounts for ${Math.round(weekendAmtPct)}% of total`,
+        description: `${weekend.length} weekend transactions totaling ₹${weekendTotal.toLocaleString()}. Consider if these are planned or impulse purchases.`,
+        metric: { value: `${Math.round(weekendAmtPct)}%`, direction: "up", positive: false },
+        type: "pattern",
+        severity: "warning",
+      });
+    } else if (weekendAmtPct < 15 && transactions.length > 5) {
+      insights.push({
+        id: `weekend-low-${Date.now()}`,
+        title: `Weekend spending is well-controlled at ${Math.round(weekendAmtPct)}%`,
+        description: `Only ₹${weekendTotal.toLocaleString()} spent on weekends. Good discipline.`,
+        metric: { value: `${Math.round(weekendAmtPct)}%`, direction: "down", positive: true },
+        type: "pattern",
+        severity: "info",
+      });
+    }
+  }
+
+  return {
+    weekendTotal,
+    weekdayTotal,
+    weekendCount: weekend.length,
+    weekdayCount: weekday.length,
+    weekendAvg: weekend.length > 0 ? Math.round(weekendTotal / weekend.length) : 0,
+    weekdayAvg: weekday.length > 0 ? Math.round(weekdayTotal / weekday.length) : 0,
+    weekendPercentage: (weekendTotal / (weekendTotal + weekdayTotal || 1)) * 100,
+    insights,
+  };
+}
+
+export function analyzeMerchantFrequency(transactions: Transaction[]): {
+  topMerchants: { merchant: string; count: number; total: number; category: string }[];
+  insights: AIInsight[];
+} {
+  const freq: Record<string, { count: number; total: number; category: string }> = {};
+  for (const tx of transactions) {
+    if (!freq[tx.merchant]) freq[tx.merchant] = { count: 0, total: 0, category: tx.category };
+    freq[tx.merchant].count++;
+    freq[tx.merchant].total += tx.amount;
+  }
+
+  const topMerchants = Object.entries(freq)
+    .map(([merchant, data]) => ({ merchant, ...data }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 10);
+
+  const insights: AIInsight[] = [];
+  const frequent = topMerchants.filter((m) => m.count >= 3);
+  if (frequent.length > 0) {
+    insights.push({
+      id: `merchant-freq-${Date.now()}`,
+      title: `${frequent[0].merchant} is your most frequent merchant (${frequent[0].count} visits)`,
+      description: `You've visited ${frequent[0].merchant} ${frequent[0].count} times totaling ₹${frequent[0].total.toLocaleString()}. ${frequent.length > 1 ? `Other frequent: ${frequent.slice(1, 3).map((m) => m.merchant).join(", ")}.` : ""}`,
+      type: "pattern",
+      severity: "info",
+    });
+  }
+
+  const recurring = topMerchants.filter((m) => {
+    const merchantTx = transactions.filter((t) => t.merchant === m.merchant);
+    const dates = [...new Set(merchantTx.map((t) => t.date))];
+    return m.count >= 2 && dates.length === m.count;
+  });
+  if (recurring.length > 0 && !insights.some((i) => i.type === "subscription")) {
+    const totalMonthly = recurring.reduce((s, m) => s + Math.round(m.total / Math.max(1, m.count)), 0);
+    insights.push({
+      id: `recurring-merchants-${Date.now()}`,
+      title: `${recurring.length} recurring merchants detected (≈₹${totalMonthly.toLocaleString()}/mo)`,
+      description: recurring.slice(0, 3).map((m) => `${m.merchant}: ₹${Math.round(m.total / m.count)}/visit`).join(", "),
+      metric: { value: `₹${totalMonthly.toLocaleString()}/mo`, direction: "up", positive: false },
+      type: "subscription",
+      severity: "info",
+    });
+  }
+
+  return { topMerchants, insights };
+}
+
+export function detectSpendingSpikes(transactions: Transaction[]): AIInsight[] {
+  const insights: AIInsight[] = [];
+  const byDate: Record<string, Transaction[]> = {};
+  for (const tx of transactions) {
+    if (!byDate[tx.date]) byDate[tx.date] = [];
+    byDate[tx.date].push(tx);
+  }
+
+  const dailyTotals = Object.entries(byDate).map(([date, txs]) => ({
+    date,
+    total: txs.reduce((s, t) => s + t.amount, 0),
+    count: txs.length,
+  }));
+
+  if (dailyTotals.length < 3) return insights;
+
+  const amounts = dailyTotals.map((d) => d.total);
+  const mean = amounts.reduce((s, v) => s + v, 0) / amounts.length;
+  const variance = amounts.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / amounts.length;
+  const stdDev = Math.sqrt(variance);
+  const threshold = mean + stdDev * 2;
+
+  const spikes = dailyTotals.filter((d) => d.total > threshold && d.total > mean * 1.5);
+  for (const spike of spikes) {
+    const merchants = byDate[spike.date].map((t) => `${t.merchant} (₹${t.amount})`).join(", ");
+    insights.push({
+      id: `spike-${spike.date}-${Date.now()}`,
+      title: `Spending spike on ${spike.date}: ₹${spike.total.toLocaleString()}`,
+      description: `${spike.count} transactions on this day. Merchants: ${merchants}. This is ${Math.round((spike.total / mean) * 100)}% above your daily average of ₹${Math.round(mean).toLocaleString()}.`,
+      metric: { value: `₹${spike.total.toLocaleString()}`, direction: "up", positive: false },
+      type: "anomaly",
+      severity: "warning",
+    });
+  }
+
+  return insights;
+}
+
+export function getGoalsFromStore(): FinancialGoal[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const { useGoalsStore } = require("@/store/goals-store");
+    return useGoalsStore.getState().goals || [];
+  } catch {
+    return [];
+  }
+}
+
+export function computeMonthlyTrend(transactions: Transaction[]): { month: string; spending: number; savings: number }[] {
+  const monthly: Record<string, number> = {};
+  for (const tx of transactions) {
+    const d = new Date(tx.date);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    monthly[key] = (monthly[key] || 0) + tx.amount;
+  }
+
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return Object.entries(monthly)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(-6)
+    .map(([key, spending]) => {
+      const [year, monthNum] = key.split("-").map(Number);
+      return {
+        month: `${monthNames[monthNum - 1]} ${year}`,
+        spending: Math.round(spending),
+        savings: 0,
+      };
+    });
+}
+
+export function zScoreAnomalyDetection(transactions: Transaction[]): AIInsight[] {
+  if (transactions.length < 5) return [];
+  const byCategory = groupByCategory(transactions);
+  const insights: AIInsight[] = [];
+
+  for (const [category, txs] of Object.entries(byCategory)) {
+    const amounts = txs.map((t) => t.amount);
+    const mean = amounts.reduce((s, v) => s + v, 0) / amounts.length;
+    const variance = amounts.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / amounts.length;
+    const stdDev = Math.sqrt(variance);
+    if (stdDev === 0) continue;
+
+    for (const tx of txs) {
+      const z = (tx.amount - mean) / stdDev;
+      if (Math.abs(z) > 2.5) {
+        insights.push({
+          id: `zscore-${tx.id}-${Date.now()}`,
+          title: `Unusual ${tx.merchant} transaction (Z-score: ${z.toFixed(1)})`,
+          description: `₹${tx.amount.toLocaleString()} is ${Math.abs(z).toFixed(1)} standard deviations from the ${category} average of ₹${Math.round(mean).toLocaleString()}. ${z > 0 ? "Significantly higher than usual." : "Unusually low for this category."}`,
+          metric: { value: `z=${z.toFixed(1)}`, direction: z > 0 ? "up" : "down", positive: z < 0 },
+          type: "anomaly",
+          severity: Math.abs(z) > 3 ? "critical" : "warning",
+        });
+      }
+    }
+  }
+  return insights;
+}
+
+export function iqrAnomalyDetection(transactions: Transaction[]): AIInsight[] {
+  if (transactions.length < 5) return [];
+  const byCategory = groupByCategory(transactions);
+  const insights: AIInsight[] = [];
+
+  for (const [category, txs] of Object.entries(byCategory)) {
+    const sorted = [...txs].sort((a, b) => a.amount - b.amount);
+    const q1 = sorted[Math.floor(sorted.length * 0.25)].amount;
+    const q3 = sorted[Math.floor(sorted.length * 0.75)].amount;
+    const iqr = q3 - q1;
+    const lowerFence = q1 - 1.5 * iqr;
+    const upperFence = q3 + 1.5 * iqr;
+
+    for (const tx of txs) {
+      if (tx.amount > upperFence) {
+        insights.push({
+          id: `iqr-${tx.id}-${Date.now()}`,
+          title: `Outlier: ${tx.merchant} at ₹${tx.amount.toLocaleString()}`,
+          description: `This ${category} expense exceeds the IQR upper fence (₹${Math.round(upperFence).toLocaleString()}) for this category. Q1=₹${q1}, Q3=₹${q3}, IQR=₹${iqr}.`,
+          metric: { value: `₹${tx.amount.toLocaleString()}`, direction: "up", positive: false },
+          type: "anomaly",
+          severity: tx.amount > q3 + 3 * iqr ? "critical" : "warning",
+        });
+      } else if (tx.amount < lowerFence && tx.amount > 0) {
+        insights.push({
+          id: `iqr-low-${tx.id}-${Date.now()}`,
+          title: `Unusually low ${tx.merchant} expense`,
+          description: `₹${tx.amount} is below the IQR lower fence for ${category} (₹${Math.round(lowerFence).toLocaleString()}).`,
+          metric: { value: `₹${tx.amount.toLocaleString()}`, direction: "down", positive: true },
+          type: "anomaly",
+          severity: "info",
+        });
+      }
+    }
+  }
+  return insights;
+}
+
+export function seasonalTrendDetection(transactions: Transaction[]): AIInsight[] {
+  const insights: AIInsight[] = [];
+  const byMonth: Record<string, number> = {};
+  for (const tx of transactions) {
+    const d = new Date(tx.date);
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    byMonth[key] = (byMonth[key] || 0) + tx.amount;
+  }
+
+  const months = Object.entries(byMonth).sort(([a], [b]) => a.localeCompare(b));
+  if (months.length < 3) return insights;
+
+  const values = months.map(([, v]) => v);
+  const mean = values.reduce((s, v) => s + v, 0) / values.length;
+
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  for (const [key, spending] of months) {
+    const [year, monthIdx] = key.split("-").map(Number);
+    const ratio = spending / mean;
+    if (ratio > 1.25) {
+      insights.push({
+        id: `seasonal-${key}-${Date.now()}`,
+        title: `${monthNames[monthIdx]} ${year} spending was ${Math.round((ratio - 1) * 100)}% above average`,
+        description: `₹${spending.toLocaleString()} vs monthly average of ₹${Math.round(mean).toLocaleString()}. Seasonal pattern detected.`,
+        metric: { value: `+${Math.round((ratio - 1) * 100)}%`, direction: "up", positive: false },
+        type: "pattern",
+        severity: "warning",
+      });
+    } else if (ratio < 0.75) {
+      insights.push({
+        id: `seasonal-low-${key}-${Date.now()}`,
+        title: `${monthNames[monthIdx]} ${year} spending was ${Math.round((1 - ratio) * 100)}% below average`,
+        description: `₹${spending.toLocaleString()} vs monthly average of ₹${Math.round(mean).toLocaleString()}.`,
+        metric: { value: `${Math.round((ratio - 1) * 100)}%`, direction: "down", positive: true },
+        type: "pattern",
+        severity: "info",
+      });
+    }
+  }
+  return insights;
+}
+
+export function budgetOverrunAnalysis(transactions: Transaction[], budgets?: Record<string, number>): AIInsight[] {
+  const insights: AIInsight[] = [];
+  const currentMonth = getMonthlyTransactions(transactions, 1);
+  const totals = categoryTotals(currentMonth);
+
+  const defaultBudgets: Record<string, number> = budgets || {
+    food: 12000, transport: 6000, entertainment: 3000, utilities: 5000,
+    shopping: 8000, health: 3000, housing: 20000, other: 3000,
+  };
+
+  for (const [category, spent] of Object.entries(totals)) {
+    const limit = defaultBudgets[category];
+    if (!limit || limit <= 0) continue;
+    if (spent > limit) {
+      const overPercent = Math.round(((spent - limit) / limit) * 100);
+      insights.push({
+        id: `budget-overrun-${category}-${Date.now()}`,
+        title: `${category} over budget by ${overPercent}%`,
+        description: `₹${spent.toLocaleString()} spent vs ₹${limit.toLocaleString()} budget (₹${(spent - limit).toLocaleString()} over).`,
+        metric: { value: `+${overPercent}%`, direction: "up", positive: false },
+        type: "spending",
+        severity: overPercent > 30 ? "critical" : "warning",
+      });
+    }
+  }
+  return insights;
+}
+
+export interface MonthlyHealthSnapshot {
+  month: string;
+  overall: number;
+  savingsRate: number;
+  budgetAdherence: number;
+  goalProgress: number;
+}
+
+export function computeHealthHistory(transactions: Transaction[], goals: FinancialGoal[], income?: number): MonthlyHealthSnapshot[] {
+  const monthlyIncome = income || 75000;
+  const byMonth: Record<string, Transaction[]> = {};
+  for (const tx of transactions) {
+    const d = new Date(tx.date);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    if (!byMonth[key]) byMonth[key] = [];
+    byMonth[key].push(tx);
+  }
+
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return Object.entries(byMonth)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(-12)
+    .map(([key, monthTxs]) => {
+      const [year, monthNum] = key.split("-").map(Number);
+      const spending = monthTxs.reduce((s, t) => s + t.amount, 0);
+      const rate = savingsRate(monthlyIncome, spending);
+      const savingsRateScore = Math.min(100, Math.round((rate / 30) * 100));
+      const budgetScore = Math.min(100, Math.round(100 - Math.max(0, (spending - monthlyIncome * 0.7) / (monthlyIncome * 0.7) * 100)));
+      const goalScore = goals.length > 0
+        ? Math.round(goals.reduce((s, g) => s + (g.targetAmount > 0 ? (g.currentAmount / g.targetAmount) * 100 : 0), 0) / goals.length)
+        : 50;
+      const overall = Math.round(savingsRateScore * 0.35 + budgetScore * 0.35 + goalScore * 0.3);
+
+      return {
+        month: `${monthNames[monthNum - 1]} ${year}`,
+        overall: Math.min(100, Math.max(0, overall)),
+        savingsRate: savingsRateScore,
+        budgetAdherence: budgetScore,
+        goalProgress: goalScore,
+      };
+    });
+}
+
+export function autoRecalculateHealthScore(transactions: Transaction[], goals: FinancialGoal[], income?: number): {
+  overall: number;
+  savingsRate: number;
+  budgetAdherence: number;
+  goalProgress: number;
+  cashFlow: number;
+  explanation: string;
+  recommendations: string[];
+} {
+  const monthlyIncome = income || 75000;
+  const currentTotal = totalSpending(getMonthlyTransactions(transactions, 1));
+  const savings = Math.max(0, monthlyIncome - currentTotal);
+  const rate = savingsRate(monthlyIncome, currentTotal);
+  const savingsRateScore = Math.min(100, Math.round((rate / 30) * 100));
+
+  const analysis = generateExpenseAnalysis(transactions);
+  const alerts = analysis.filter((a) => a.isAlert);
+  const budgetScore = Math.min(100, Math.round(100 - alerts.length * 15));
+  const goalScore = goals.length > 0
+    ? Math.round(goals.reduce((s, g) => s + (g.targetAmount > 0 ? (g.currentAmount / g.targetAmount) * 100 : 0), 0) / goals.length)
+    : transactions.length > 0 ? 50 : 0;
+
+  const consistency = analysis.length > 0
+    ? Math.round(100 - analysis.filter((a) => Math.abs(a.changeVsAvg3) > 20).length * 10)
+    : 70;
+
+  const overall = Math.round(
+    savingsRateScore * 0.25 +
+    budgetScore * 0.20 +
+    goalScore * 0.15 +
+    consistency * 0.15 +
+    75 * 0.15 +
+    65 * 0.10
+  );
+
+  const recs: string[] = [];
+  if (rate < 20) recs.push(`Increase savings rate from ${Math.round(rate)}% to 20% (save ₹${Math.round(monthlyIncome * 0.2)}/mo)`);
+  if (alerts.length > 0) recs.push(`Review ${alerts.length} categories exceeding normal spending: ${alerts.map((a) => a.category).join(", ")}`);
+  if (goalScore < 60) recs.push(`Accelerate goal progress — current ${goalScore}% completion rate`);
+  if (recs.length === 0) recs.push("Maintain your current habits — all factors are healthy");
+
+  return {
+    overall: Math.min(100, Math.max(0, overall)),
+    savingsRate: savingsRateScore,
+    budgetAdherence: budgetScore,
+    goalProgress: goalScore,
+    cashFlow: savings,
+    explanation: `Score: ${Math.min(100, Math.max(0, overall))}/100. Savings rate: ${Math.round(rate)}%. ${alerts.length} categories over budget. ${goals.length} active goals.`,
+    recommendations: recs,
+  };
+}

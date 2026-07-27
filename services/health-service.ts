@@ -1,10 +1,11 @@
 import type { FinancialHealthScore, TimelineEvent, Transaction, FinancialGoal } from "@/types/finance";
-import { EXPENSE_BREAKDOWN, SPENDING_TREND, MOCK_GOALS } from "@/lib/mock-data";
+import { EXPENSE_BREAKDOWN, SPENDING_TREND } from "@/lib/mock-data";
 import {
   generateExpenseAnalysis,
   totalSpending,
   savingsRate,
   getMonthlyTransactions,
+  getGoalsFromStore,
 } from "@/lib/financial-engine";
 import { useExpensesStore } from "@/store/expenses-store";
 
@@ -48,9 +49,10 @@ function calculateHealthScoreLocal(): FinancialHealthScore {
   const spendingVariance = spendingValues.reduce((s, v) => s + Math.pow(v - spendingMean, 2), 0) / spendingValues.length;
   const stabilityScore = Math.max(0, 100 - spendingVariance / 500);
 
-  const goalProgressValues = MOCK_GOALS.map((g) =>
-    g.targetAmount > 0 ? (g.currentAmount / g.targetAmount) * 100 : 0
-  );
+  const storedGoals = getGoalsFromStore();
+  const goalProgressValues = storedGoals.length > 0
+    ? storedGoals.map((g) => g.targetAmount > 0 ? (g.currentAmount / g.targetAmount) * 100 : 0)
+    : [72];
   const avgGoalProgress = goalProgressValues.length > 0
     ? goalProgressValues.reduce((s, v) => s + v, 0) / goalProgressValues.length
     : 72;
@@ -128,7 +130,9 @@ export function getTimelineEvents(): TimelineEvent[] {
     });
   }
 
-  for (const goal of MOCK_GOALS) {
+  const storedGoals = getGoalsFromStore();
+  const goalsToShow = storedGoals.length > 0 ? storedGoals : [];
+  for (const goal of goalsToShow) {
     const progress = goal.targetAmount > 0 ? (goal.currentAmount / goal.targetAmount) * 100 : 0;
     events.push({
       id: `goal-${goal.id}`,

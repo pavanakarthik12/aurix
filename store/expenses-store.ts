@@ -14,6 +14,7 @@ interface ExpensesState {
   addTransaction: (tx: Omit<TrackedTransaction, "id">) => void;
   addTransactions: (txs: Omit<TrackedTransaction, "id">[]) => void;
   removeTransaction: (id: string) => void;
+  setTransactions: (txs: TrackedTransaction[]) => void;
 }
 
 function withId(tx: Omit<TrackedTransaction, "id">, salt: number): TrackedTransaction {
@@ -36,6 +37,7 @@ export const useExpensesStore = create<ExpensesState>()(
         set((state) => ({
           transactions: state.transactions.filter((tx) => tx.id !== id),
         })),
+      setTransactions: (txs) => set({ transactions: txs }),
     }),
     { name: "aurix-expenses" }
   )

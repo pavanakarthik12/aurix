@@ -26,6 +26,9 @@ import {
   searchFinancialBooks,
   groupByCategory,
   categoryTotals,
+  analyzeWeekendVsWeekday,
+  analyzeMerchantFrequency,
+  detectSpendingSpikes,
 } from "@/lib/financial-engine";
 import { getRelevantGuruPassages } from "@/lib/guru-knowledge";
 import { useExpensesStore } from "@/store/expenses-store";
@@ -44,8 +47,8 @@ function getTransactions(): Transaction[] {
 function getGoals(): FinancialGoal[] {
   if (typeof window === "undefined") return [];
   try {
-    const { MOCK_GOALS } = require("@/lib/mock-data");
-    return MOCK_GOALS as FinancialGoal[];
+    const { useGoalsStore } = require("@/store/goals-store");
+    return useGoalsStore.getState().goals || [];
   } catch {
     return [];
   }
@@ -209,7 +212,10 @@ export async function getSpendingInsights(): Promise<AIInsight[]> {
 
   const computedInsights = categoryInsights(analysis);
   const anomalies = detectAnomalies(transactions);
-  const allInsights = [...computedInsights, ...anomalies];
+  const weekendInsights = analyzeWeekendVsWeekday(transactions).insights;
+  const merchantInsights = analyzeMerchantFrequency(transactions).insights;
+  const spikeInsights = detectSpendingSpikes(transactions);
+  const allInsights = [...computedInsights, ...anomalies, ...weekendInsights, ...merchantInsights, ...spikeInsights];
 
   if (allInsights.length === 0) {
     const income = getIncome();

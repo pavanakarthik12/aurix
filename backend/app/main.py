@@ -7,11 +7,13 @@ from loguru import logger
 from app.api.health import router as health_router, set_grok_status, set_db_status
 from app.api.ai import router as ai_router
 from app.api.ocr import router as ocr_router
+from app.api.data import router as data_router
 from app.rag.api import router as rag_router
 from app.core.config import settings
 from app.core.exceptions import AurixException, aurix_exception_handler, global_exception_handler
 from app.core.logging import setup_logging
 from app.core.startup import run_startup_validation
+from app.database.session import Base, engine
 
 
 @asynccontextmanager
@@ -24,6 +26,13 @@ async def lifespan(app: FastAPI):
 
     set_grok_status(results.get("grok", False))
     set_db_status(results.get("database", False))
+
+    if results.get("database"):
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database tables verified/created")
+    else:
+        logger.warning("Database unavailable — table creation skipped")
 
     if not results.get("environment"):
         logger.warning("GROK_API_KEY is missing — AI features will not work until it is configured")
@@ -54,6 +63,7 @@ app.include_router(health_router, prefix="/api/v1")
 app.include_router(ai_router, prefix="/api/v1")
 app.include_router(ocr_router, prefix="/api/v1")
 app.include_router(rag_router, prefix="/api/v1")
+app.include_router(data_router, prefix="/api/v1")
 
 
 @app.get("/")
