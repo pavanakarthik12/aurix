@@ -130,6 +130,10 @@ export interface AIRecommendation {
   sourceBook?: string;
   sourceAuthor?: string;
   confidence: number;
+  evidence?: FinancialCalculation[];
+  whyItMatters?: string;
+  expectedResult?: string;
+  annualSavings?: number;
 }
 
 export interface TimelineEvent {
@@ -160,4 +164,56 @@ export interface PredictionResult {
   cashFlow: number;
   budgetOverflow: boolean;
   goalCompletionPercent: number;
+}
+
+export interface FinancialCalculation {
+  label: string;
+  currentValue: string;
+  previousValue?: string;
+  benchmark?: string;
+  difference: string;
+  direction: "up" | "down" | "neutral";
+  positive: boolean;
+}
+
+export interface AdviceEvidence {
+  calculation: FinancialCalculation[];
+  comparisonPeriod: "current-month" | "3-month" | "6-month" | "previous-month";
+  sourceData: string[];
+}
+
+export interface StructuredAdvice {
+  situation: string;
+  evidence: AdviceEvidence;
+  whyItMatters: string;
+  recommendation: string;
+  expectedResult: {
+    description: string;
+    annualSavings?: number;
+    timeline?: string;
+  };
+  confidence: {
+    score: number;
+    reasoning: string;
+  };
+}
+
+export interface FollowUpQuestion {
+  question: string;
+  context: string;
+  required: boolean;
+}
+
+export interface ExpenseAnalysis {
+  category: string;
+  currentMonth: number;
+  average3Month: number;
+  average6Month: number;
+  previousMonth: number;
+  changeVsAvg3: number;
+  changeVsAvg6: number;
+  changeVsPrevious: number;
+  percentageOfTotal: number;
+  trend: "increasing" | "decreasing" | "stable";
+  isAlert: boolean;
 }

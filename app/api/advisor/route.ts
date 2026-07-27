@@ -3,20 +3,47 @@ import { isAIReal } from "@/lib/config";
 import { chatWithAI, generateGuruDebate, type AIChatMessage } from "@/services/ai-client";
 import { getRelevantGuruPassages } from "@/lib/guru-knowledge";
 import { getFinancialAdvice } from "@/lib/financial-advice";
-import { MOCK_TRANSACTIONS, EXPENSE_BREAKDOWN, MOCK_GOALS } from "@/lib/mock-data";
+import {
+  generateExpenseAnalysis,
+  searchFinancialBooks,
+  totalSpending,
+  savingsRate,
+  generateStructuredResponse,
+  generateFollowUpQuestions,
+  categoryInsights,
+  detectAnomalies,
+  getMonthlyTransactions,
+} from "@/lib/financial-engine";
+import type { Transaction, ExpenseAnalysis, FinancialGoal } from "@/types/finance";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { query, mode } = body as { query: string; mode: "chat" | "debate" | "insight" };
+    const { query, mode, userContext } = body as {
+      query: string;
+      mode: "chat" | "debate" | "insight";
+      userContext?: {
+        transactions?: Transaction[];
+        income?: number;
+        analysis?: ExpenseAnalysis[];
+        goals?: FinancialGoal[];
+      };
+    };
 
     if (!query || typeof query !== "string") {
       return NextResponse.json({ error: "Query is required" }, { status: 400 });
     }
 
+    const transactions: Transaction[] = userContext?.transactions || [];
+    const income = userContext?.income || 75000;
+    const goals: FinancialGoal[] = userContext?.goals || [];
+    const analysis = userContext?.analysis || generateExpenseAnalysis(transactions);
+    const currentTotal = totalSpending(getMonthlyTransactions(transactions, 1));
+    const rate = savingsRate(income, currentTotal);
+    const books = searchFinancialBooks(query);
+
     if (mode === "debate" && isAIReal()) {
       const guruContexts = getRelevantGuruPassages(query);
-      const totalSpending = EXPENSE_BREAKDOWN.reduce((s, c) => s + c.amount, 0);
 
       const debate = await generateGuruDebate({
         query,
@@ -28,13 +55,17 @@ export async function POST(req: NextRequest) {
             passages: g.relevantPassages,
           })),
         userContext: {
-          monthlyIncome: 75000,
-          monthlySpending: totalSpending,
-          savingsRate: ((75000 - totalSpending) / 75000) * 100,
-          recentTransactions: MOCK_TRANSACTIONS.map(
-            (t) => `${t.merchant}: ₹${t.amount} (${t.category})`
+          monthlyIncome: income,
+          monthlySpending: currentTotal,
+          savingsRate: rate,
+          recentTransactions: transactions.slice(0, 10).map(
+            (t: Transaction) => `${t.merchant}: ₹${t.amount} (${t.category})`
           ).join(", "),
-          goals: MOCK_GOALS.map((g) => `${g.title}: ₹${g.currentAmount}/₹${g.targetAmount}`).join(", "),
+          goals: goals.map((g: FinancialGoal) => `${g.title}: ₹${g.currentAmount}/₹${g.targetAmount}`).join(", "),
+          expenseAnalysis: analysis.filter((a) => a.currentMonth > 0).map(
+            (a) => `${a.category}: ₹${a.currentMonth} (${a.changeVsAvg3 > 0 ? "+" : ""}${a.changeVsAvg3}% vs 3mo avg, ${a.percentageOfTotal}% of total)`
+          ).join("\n"),
+          bookKnowledge: books.slice(0, 5).map((b) => `"${b.passage}" — ${b.source}`).join("\n"),
         },
       });
 
@@ -42,33 +73,56 @@ export async function POST(req: NextRequest) {
     }
 
     if (mode === "insight" && isAIReal()) {
-      const totalSpending = EXPENSE_BREAKDOWN.reduce((s, c) => s + c.amount, 0);
-      const systemPrompt = `You are a financial analyst. Analyze the following financial data and generate personalized insights.
+      const analysisText = analysis.filter((a) => a.currentMonth > 0).map(
+        (a) => `${a.category}: ₹${a.currentMonth} (${a.changeVsAvg3}% vs 3mo avg)`
+      ).join(", ");
 
-Income: ₹75,000/month
-Spending by category: ${EXPENSE_BREAKDOWN.map((c) => `${c.category}: ₹${c.amount}`).join(", ")}
-Total spending: ₹${totalSpending}
-Savings: ₹${75000 - totalSpending}
-Savings rate: ${(((75000 - totalSpending) / 75000) * 100).toFixed(1)}%
-Recent transactions: ${MOCK_TRANSACTIONS.slice(0, 5).map((t) => `${t.merchant} ₹${t.amount}`).join(", ")}
+      const systemPrompt = `You are a financial data analyst. Analyze the user's actual financial data below and generate personalized, data-driven insights.
 
-Provide concise, actionable insights in JSON array format: [{ "title": "string", "description": "string", "type": "spending|savings|subscription|pattern|anomaly", "severity": "info|warning|critical" }]`;
+CRITICAL: Every insight must be based on the actual data provided. Do not invent values.
+
+Income: ₹${income}/month
+Total Spending: ₹${currentTotal}
+Savings Rate: ${rate.toFixed(1)}%
+Category Analysis: ${analysisText}
+Recent Transactions: ${transactions.slice(0, 5).map((t: Transaction) => `${t.merchant} ₹${t.amount}`).join(", ")}
+
+Return JSON array only: [{ "title": "string with specific numbers", "description": "string with calculations and comparisons", "type": "spending|savings|subscription|pattern|anomaly", "severity": "info|warning|critical" }]
+
+If insufficient data exists, return: [{ "title": "Insufficient Data", "description": "Not enough transactions to generate meaningful insights. Please add more expense data.", "type": "pattern", "severity": "info" }]`;
 
       const aiResponse = await chatWithAI(
         [
           { role: "system", content: systemPrompt },
-          { role: "user", content: "Generate my financial insights for this month." },
+          { role: "user", content: "Generate my financial insights for this month using my actual data." },
         ],
         { temperature: 0.4, maxTokens: 1024 }
       );
 
       try {
         const insights = JSON.parse(aiResponse);
-        return NextResponse.json({ insights, source: "ai" });
+        return NextResponse.json({ responses: [], summary: "", confidence: 0, insights, source: "ai" });
       } catch {
-        return NextResponse.json({ insights: [], source: "ai", raw: aiResponse });
+        const computedInsights = [...categoryInsights(analysis), ...detectAnomalies(transactions)];
+        return NextResponse.json({
+          responses: [], summary: "", confidence: 0,
+          insights: computedInsights.length > 0 ? computedInsights : [{
+            id: "insight-fallback",
+            title: `${transactions.length} transactions analyzed`,
+            description: `Current savings rate: ${rate.toFixed(0)}%. Add more transactions for deeper insights.`,
+            type: "pattern",
+            severity: "info",
+          }],
+          source: "calculated",
+        });
       }
     }
+
+    const structured = generateStructuredResponse(query, analysis, transactions, income, goals);
+    const followUps = generateFollowUpQuestions(transactions, income, goals);
+    const booksResult = books.length > 0
+      ? books.slice(0, 2).map((b) => `"${b.passage}" — ${b.source}`).join("\n")
+      : "No supporting financial literature found.";
 
     const debate = getFinancialAdvice(query);
     const responses = debate.responses.map((r) => ({
@@ -77,9 +131,15 @@ Provide concise, actionable insights in JSON array format: [{ "title": "string",
       emoji: r.guru.emoji,
       philosophy: r.guru.philosophy,
       principle: r.principle.principle,
-      advice: r.principle.advice,
+      advice: `${r.principle.advice}\n\n${booksResult}`,
     }));
-    return NextResponse.json({ responses, summary: debate.summary, confidence: 70 });
+
+    return NextResponse.json({
+      responses,
+      summary: structured,
+      confidence: Math.round(Math.min(95, 60 + (analysis.filter((a) => a.isAlert).length * 5) + (transactions.length >= 5 ? 10 : 0))),
+      followUpQuestions: followUps,
+    });
   } catch (err) {
     console.error("Advisor API error:", err);
     const message = err instanceof Error ? err.message : "Internal server error";

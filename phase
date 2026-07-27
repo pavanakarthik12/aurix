@@ -1,306 +1,419 @@
-# Update the Project Setup
+# Fix Aurix AI Advisor – Remove Generic, Synthetic & Mock Responses
 
-I have already added my **Grok API Key** to the `.env` file.
+You are a Principal AI Engineer, Prompt Engineer, FinTech Expert, and RAG Architect.
 
-Your responsibility is to ensure that **Grok is fully integrated across the entire backend** and that there are **no placeholder implementations**.
+The current AI responses in Aurix are **too generic, synthetic, and often feel like template responses**. They do not provide real financial reasoning or actionable advice.
 
-This is a production-ready setup.
-
----
-
-# Grok Integration Requirements
-
-Use **Grok as the ONLY LLM provider**.
-
-Do not configure or install:
-
-- OpenAI
-- Gemini
-- Claude
-- DeepSeek
-- Ollama
-- HuggingFace Inference APIs
-
-The entire AI pipeline must use **Grok**.
+Your task is to completely redesign the AI advisor so that every response is personalized, data-driven, explainable, and useful.
 
 ---
 
-# Verify Environment Variables
+# Current Problems
 
-Read the API key directly from `.env`.
+The AI currently:
 
-Example
+- Gives generic advice.
+- Repeats the same financial tips.
+- Ignores the user's actual financial data.
+- Doesn't analyze spending history.
+- Doesn't use uploaded financial books effectively.
+- Doesn't explain why it made a recommendation.
+- Doesn't provide calculations.
+- Doesn't prioritize recommendations.
+- Doesn't ask follow-up questions when data is missing.
+- Sometimes falls back to mock/template responses.
 
-```env
-GROK_API_KEY=xxxxxxxxxxxxxxxx
-```
-
-Never hardcode the key.
-
-If the key is missing,
-
-- display a meaningful startup error
-- prevent the AI service from initializing
-- explain exactly what is missing
-
----
-
-# Create a Central AI Service
-
-Create one reusable AI service.
-
-Example
-
-```
-app/
-    ai/
-        provider.py
-        grok.py
-        prompts.py
-        models.py
-```
-
-Every future feature must call this service.
-
-Never call Grok directly from routes or business logic.
+This is unacceptable.
 
 ---
 
-# Test the Connection
+# Goal
 
-When the backend starts,
+Aurix should behave like a **real Certified Financial Planner (CFP)** or experienced financial consultant.
 
-perform a lightweight connection check.
+Every answer should be based on:
 
-Verify
-
-- API key exists
-- Authentication succeeds
-- Grok endpoint is reachable
-- A simple prompt returns successfully
-
-If successful,
-
-log
-
-```
-✓ Grok Connected Successfully
-```
-
-If unsuccessful,
-
-display the complete error,
-
-including
-
-- authentication errors
-- network errors
-- invalid key
-- timeout
-
-without crashing the application unnecessarily.
-
----
-
-# AI Service Responsibilities
-
-The Grok service should be reusable by every module.
-
-Future modules that must automatically use this service include
-
-- Financial Advisor
-- OCR Analysis
-- Receipt Understanding
-- Budget Planner
-- Spending Analysis
-- Goal Tracking
+- User's transactions
+- Income
+- Spending history
+- Budget
+- Goals
 - Financial Health Score
-- Recommendation Engine
-- AI Insights
-- RAG Answer Generation
-- Financial Chat
-- Investment Suggestions
-- Expense Categorization
-- Report Generation
+- Uploaded financial books (RAG)
+- Previous conversations
+- Category trends
+- Monthly patterns
 
-There should never be duplicated AI request logic.
+Never generate advice without first analyzing available data.
 
 ---
 
-# Connection Architecture
+# No Generic Responses
 
-Every request should follow
+Never say things like:
 
-```
-Feature
+❌ Save more money.
+
+❌ Spend less.
+
+❌ Create a budget.
+
+❌ Reduce unnecessary expenses.
+
+❌ Invest wisely.
+
+These responses are useless.
+
+Every recommendation must be specific.
+
+Example
+
+Instead of
+
+> "Reduce food spending."
+
+Say
+
+> "You spent $482 on food this month compared to your 6-month average of $315 (53% increase). Most of the increase came from food delivery between Friday and Sunday evenings. Reducing food delivery by $40/week would save approximately $2,080 per year."
+
+---
+
+# Response Structure
+
+Every recommendation must contain
+
+## 1. Current Situation
+
+Explain exactly what the AI found.
+
+Example
+
+- Spending increased by 14%
+- Entertainment exceeded budget by 22%
+- Savings dropped by 8%
+
+---
+
+## 2. Evidence
+
+Show calculations.
+
+Example
+
+Dining
+
+Current Month
+
+$480
+
+Average
+
+$330
+
+Difference
+
++45%
+
+---
+
+## 3. Why It Matters
+
+Explain financial impact.
+
+---
+
+## 4. Recommendation
+
+Concrete action.
+
+Example
+
+Limit food delivery to twice a week.
+
+---
+
+## 5. Expected Result
+
+Estimate savings.
+
+Example
+
+Annual Savings
+
+$2,100
+
+---
+
+## 6. Confidence Score
+
+Example
+
+92%
+
+Explain why.
+
+---
+
+# Ground Every Answer
+
+The AI must never answer without checking
+
+- transaction database
+- budget
+- goals
+- uploaded books
+- health score
+
+If no data exists,
+
+say so honestly.
+
+Example
+
+"I don't yet have enough spending history to recommend a monthly budget. Upload at least one month of expenses or connect your expense sources."
+
+Do NOT invent values.
+
+---
+
+# RAG First
+
+Before generating financial advice,
+
+search uploaded financial books.
+
+Retrieve
+
+- relevant passages
+- principles
+- citations
+
+Then combine
+
+Book Knowledge
+
++
+
+User Financial Data
+
++
+
+LLM Reasoning
+
+Every recommendation should include
+
+Source
+
+Book
+
+or
+
+"No supporting financial literature found."
+
+---
+
+# Financial Calculations
+
+Actually calculate
+
+Savings Rate
+
+Debt Ratio
+
+Budget Variance
+
+Monthly Growth
+
+Expense Growth
+
+Emergency Fund Coverage
+
+Goal Progress
+
+Cash Flow
+
+Never estimate without calculation.
+
+---
+
+# Multi-Step Reasoning
+
+Every financial question should follow
+
+User Question
 
 ↓
 
-AI Service
+Retrieve Transactions
 
 ↓
 
-Grok Client
+Retrieve Goals
 
 ↓
 
-Grok API
-```
+Retrieve Budget
 
-No feature should communicate with Grok directly.
+↓
 
----
+Retrieve Health Score
 
-# Configuration
+↓
 
-Create
+Retrieve Financial Books
 
-```
-config.py
-```
+↓
 
-Store
+Analyze
 
-- API key
-- Model
-- Temperature
-- Max Tokens
-- Timeout
+↓
 
-All values should come from `.env`.
+Calculate
 
----
+↓
 
-# Error Handling
+Generate Advice
 
-Handle
-
-- Invalid API Key
-- Missing API Key
-- Rate Limits
-- Timeouts
-- Connection Failure
-- Invalid Responses
-
-Every error should return meaningful logs.
-
-Never expose sensitive information.
+Never skip these steps.
 
 ---
 
-# Retry Logic
+# Ask Follow-up Questions
 
-Implement automatic retry.
+If required data is missing,
 
-Retry
+ask intelligent questions.
 
-3 times
+Example
 
-using exponential backoff.
+"What is your monthly income?"
 
-If all retries fail,
-
-return a clean application error.
+instead of guessing.
 
 ---
 
-# Streaming Support
+# Prioritize Recommendations
 
-Prepare the service so that streaming responses can be enabled later.
+Always rank advice
 
-Design the architecture now,
+High Impact
 
-even if streaming is not yet implemented.
+Medium Impact
 
----
+Low Impact
 
-# Logging
-
-Every AI request should log
-
-- request timestamp
-- response time
-- model used
-- success/failure
-
-Never log
-
-- API keys
-- private prompts
-- user financial data
+based on expected financial benefit.
 
 ---
 
-# Health Check
+# Explain Every Recommendation
 
-Extend
+Never hide reasoning.
 
-```
-GET /health
-```
+Every recommendation should answer
 
-to include
+Why?
 
-```json
-{
-  "backend": "healthy",
-  "database": "connected",
-  "grok": "connected"
-}
-```
+What data was used?
 
-If Grok cannot be reached,
+How was it calculated?
 
-the endpoint should clearly indicate
-
-```
-"grok": "disconnected"
-```
-
-along with a non-sensitive diagnostic message.
+What assumptions were made?
 
 ---
 
-# Startup Validation
+# Comparative Analysis
 
-When the application starts,
+Compare
 
-automatically verify
+Current Month
 
-- `.env` loaded
-- PostgreSQL connection
-- Grok API connection
-- Tesseract installation
-- Upload directory
-- Redis (if configured)
+vs
 
-Display clear startup logs showing the status of each dependency.
+Previous Month
+
+vs
+
+3-Month Average
+
+vs
+
+6-Month Average
+
+Highlight meaningful changes.
 
 ---
 
-# Code Quality
+# Personalized Financial Coaching
 
-The Grok integration must be
+Understand
 
-- modular
-- reusable
-- production-ready
-- dependency injected where appropriate
-- strongly typed
-- easy to extend
+- lifestyle
+- spending habits
+- financial goals
+- recurring expenses
+- income stability
 
-Avoid hardcoded values and duplicated code.
+Adapt recommendations to each user.
+
+No two users should receive identical advice.
+
+---
+
+# Conversation Memory
+
+Remember previous advice.
+
+Do not repeat the same recommendation every chat unless it is still relevant.
+
+Track
+
+- completed recommendations
+- ignored recommendations
+- progress
+
+---
+
+# Output Style
+
+Professional.
+
+Supportive.
+
+Concise.
+
+Evidence-based.
+
+Avoid hype.
+
+Avoid generic AI phrases.
+
+---
+
+# If Data Is Missing
+
+Never fabricate.
+
+Instead say
+
+"I currently don't have enough financial information to answer accurately."
+
+Then explain exactly what is needed.
 
 ---
 
 # Definition of Done
 
-This setup is complete only if:
+The AI should be capable of answering questions like
 
-- The application successfully reads the Grok API key from `.env`.
-- The backend verifies connectivity to Grok during startup.
-- Every future AI feature is routed through a single reusable AI service.
-- `/health` accurately reports Grok connectivity.
-- Errors are handled gracefully with clear logs.
-- The architecture is ready for future AI features without requiring refactoring.
-- There are no placeholder AI implementations or unused provider configurations.
+- Can I afford a vacation next month?
+- Why is my Financial Health Score low?
+- Where am I wasting the most money?
+- Which subscriptions should I cancel first?
+- What budget should I follow next month?
+- How much should I invest every month?
+- How can I reach my savings goal faster?
+
+using real financial data, real calculations, retrieved financial knowledge, and transparent reasoning.
+
+If any response is generic, repetitive, based on assumptions, or resembles a template, consider it a failure and improve the reasoning pipeline before returning the answer.

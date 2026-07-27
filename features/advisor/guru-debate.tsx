@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Brain, Lightbulb, BookOpen, ArrowRight } from "lucide-react";
+import { Sparkles, Brain, Lightbulb, BookOpen, ArrowRight, Calculator, TrendingUp, TrendingDown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -19,6 +19,8 @@ const GURU_ACCENTS: Record<string, { border: string; bg: string; icon: string }>
 };
 
 export function GuruDebateView({ debate }: GuruDebateProps) {
+  const hasAdvice = debate.responses.length > 0;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
@@ -35,6 +37,7 @@ export function GuruDebateView({ debate }: GuruDebateProps) {
         >
           {debate.responses.map((r, i) => {
             const accent = GURU_ACCENTS[r.guruId] || GURU_ACCENTS.buffett;
+            const hasEvidence = r.advice.includes("₹") || r.advice.includes("%");
             return (
               <motion.div
                 key={r.guruId}
@@ -51,13 +54,25 @@ export function GuruDebateView({ debate }: GuruDebateProps) {
                         <p className="text-xs text-muted-foreground line-clamp-1">{r.philosophy}</p>
                       </div>
                     </div>
-                    <div className="mb-2">
+                    <div className="mb-2 flex flex-wrap gap-1.5">
                       <Badge variant="outline" className="text-[10px] uppercase tracking-wider">
                         <BookOpen className="mr-1 h-3 w-3" />
                         {r.principle}
                       </Badge>
+                      {hasEvidence && (
+                        <Badge variant="secondary" className="text-[10px]">
+                          <Calculator className="mr-1 h-3 w-3" />
+                          Data-backed
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-sm leading-relaxed text-foreground/90">&ldquo;{r.advice}&rdquo;</p>
+                    {r.principle && (
+                      <div className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground">
+                        <ArrowRight className="h-3 w-3" />
+                        <span>Principle: {r.principle}</span>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </motion.div>
@@ -66,22 +81,24 @@ export function GuruDebateView({ debate }: GuruDebateProps) {
         </motion.div>
       </AnimatePresence>
 
-      <Card className="border-primary/20 bg-primary/[0.04]">
-        <CardContent className="p-4">
-          <div className="mb-2 flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span className="text-xs font-semibold text-foreground">AI Synthesis</span>
-            <Badge variant="secondary" className="ml-auto text-[10px]">
-              {debate.confidence}% confidence
-            </Badge>
-          </div>
-          <p className="text-sm leading-relaxed text-foreground/85">{debate.summary}</p>
-          <div className="mt-3 flex items-center gap-2">
-            <Progress value={debate.confidence} className="h-1.5" />
-            <span className="shrink-0 text-[10px] text-muted-foreground">{debate.confidence}%</span>
-          </div>
-        </CardContent>
-      </Card>
+      {debate.summary && (
+        <Card className={`border-primary/20 bg-primary/[0.04] ${!hasAdvice ? "mt-0" : ""}`}>
+          <CardContent className="p-4">
+            <div className="mb-2 flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-xs font-semibold text-foreground">AI Synthesis</span>
+              <Badge variant="secondary" className="ml-auto text-[10px]">
+                {debate.confidence}% confidence
+              </Badge>
+            </div>
+            <p className="text-sm leading-relaxed text-foreground/85 whitespace-pre-line">{debate.summary}</p>
+            <div className="mt-3 flex items-center gap-2">
+              <Progress value={debate.confidence} className="h-1.5" />
+              <span className="shrink-0 text-[10px] text-muted-foreground">{debate.confidence}%</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

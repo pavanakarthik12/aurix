@@ -2,12 +2,16 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Send, Bot, User, Brain, Loader2, Wifi, BookOpen, TrendingUp, Wallet, Info } from "lucide-react";
+import {
+  Sparkles, Send, Bot, User, Brain, Loader2, Wifi, BookOpen, TrendingUp, Wallet, Info,
+  BarChart3, Calculator, AlertTriangle, Target, CheckCircle2, HelpCircle,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import { GuruDebateView, GuruDebateSkeleton } from "./guru-debate";
 import { RecommendationsList } from "./recommendations";
 import { InsightsList } from "./insights-list";
@@ -17,12 +21,13 @@ import { isAIReal, getAIProviderLabel } from "@/lib/config";
 import type { GuruDebate, AIAgentTool } from "@/types/finance";
 
 const SUGGESTED_QUESTIONS = [
-  "Should I buy an iPhone on EMI?",
   "Can I afford a vacation next month?",
-  "How financially healthy am I?",
+  "Why is my Financial Health Score low?",
   "Where am I wasting the most money?",
-  "What would Warren Buffett recommend?",
-  "Predict my spending for next month",
+  "Which subscriptions should I cancel first?",
+  "What budget should I follow next month?",
+  "How much should I invest every month?",
+  "How can I reach my savings goal faster?",
 ];
 
 const TOOL_LABELS: Record<AIAgentTool, string> = {
@@ -59,7 +64,49 @@ interface ChatMessage {
   debate?: GuruDebate;
   tools?: AIAgentTool[];
   loading?: boolean;
+  structuredAdvice?: string;
+  followUpQuestions?: { question: string; context: string }[];
+  missingData?: string[];
 }
+
+function parseStructuredSections(text: string): { title: string; content: string }[] {
+  if (!text) return [];
+  const sections = text.split(/\*\*/);
+  const result: { title: string; content: string }[] = [];
+  let currentTitle = "";
+  let currentContent = "";
+
+  for (let i = 0; i < sections.length; i++) {
+    const part = sections[i].trim();
+    if (part.endsWith(":") || part.endsWith("\n") || !part.includes("\n")) {
+      if (currentTitle && currentContent) {
+        result.push({ title: currentTitle, content: currentContent.trim() });
+      }
+      currentTitle = part.replace(":", "").replace("\n", "").trim();
+      currentContent = "";
+    } else if (currentTitle) {
+      currentContent += part + " ";
+    }
+  }
+  if (currentTitle && currentContent) {
+    result.push({ title: currentTitle, content: currentContent.trim() });
+  }
+  if (result.length === 0) {
+    result.push({ title: "AI Response", content: text });
+  }
+  return result;
+}
+
+const SECTION_ICONS: Record<string, React.ElementType> = {
+  "Current Situation": BarChart3,
+  "Evidence": Calculator,
+  "Why It Matters": AlertTriangle,
+  "Recommendation": Target,
+  "Expected Result": CheckCircle2,
+  "Confidence Score": TrendingUp,
+  "Book Knowledge Applied": BookOpen,
+  "Missing Information": HelpCircle,
+};
 
 export function AdvisorChat() {
   const [query, setQuery] = useState("");
@@ -88,6 +135,9 @@ export function AdvisorChat() {
           text: response.summary,
           debate: response.guruDebate,
           tools: response.tools,
+          structuredAdvice: response.structuredAdvice,
+          followUpQuestions: response.followUpQuestions,
+          missingData: response.missingData,
         };
         return msgs;
       });
@@ -100,11 +150,13 @@ export function AdvisorChat() {
     }
   }, []);
 
-  const [recommendations] = useState(() => getAIRecommendations());
+  const [recommendations, setRecommendations] = useState<ReturnType<typeof getAIRecommendations>>([]);
   const [insights, setInsights] = useState<Awaited<ReturnType<typeof getSpendingInsights>>>([]);
-  const [predictions] = useState(() => getPredictions());
+  const [predictions, setPredictions] = useState<ReturnType<typeof getPredictions>>([]);
 
   useEffect(() => {
+    setRecommendations(getAIRecommendations());
+    setPredictions(getPredictions());
     getSpendingInsights().then(setInsights);
   }, []);
 
@@ -214,17 +266,78 @@ export function AdvisorChat() {
                           </div>
                         )}
 
-                        {msg.debate && <GuruDebateView debate={msg.debate} />}
+                        {msg.debate && msg.debate.responses.length > 0 && <GuruDebateView debate={msg.debate} />}
 
-                        {msg.text && (
-                          <Card className="border-primary/20 bg-primary/[0.04]">
+                        <Card className="border-primary/20 bg-primary/[0.04]">
+                          <CardContent className="space-y-4 p-4">
+                            {msg.structuredAdvice ? (
+                              <div className="space-y-4">
+                                {parseStructuredSections(msg.text).map((section, idx) => {
+                                  const SectionIcon = SECTION_ICONS[section.title] || Info;
+                                  const isConfidence = section.title === "Confidence Score";
+                                  const scoreMatch = section.content.match(/(\d+)%/);
+                                  const score = scoreMatch ? parseInt(scoreMatch[1]) : null;
+                                  return (
+                                    <div key={idx}>
+                                      <div className="flex items-center gap-2 mb-1.5">
+                                        <SectionIcon className="h-3.5 w-3.5 text-primary" />
+                                        <span className="text-xs font-semibold text-foreground uppercase tracking-wider">
+                                          {section.title}
+                                        </span>
+                                      </div>
+                                      <p className="text-sm leading-relaxed text-foreground/85 whitespace-pre-line">
+                                        {section.content}
+                                      </p>
+                                      {isConfidence && score !== null && (
+                                        <div className="mt-2 flex items-center gap-2">
+                                          <Progress value={score} className="h-1.5" />
+                                          <span className="shrink-0 text-[10px] text-muted-foreground">{score}%</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <>
+                                <div className="flex items-start gap-2">
+                                  <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                                  <p className="text-sm leading-relaxed text-foreground whitespace-pre-line">{msg.text}</p>
+                                </div>
+                              </>
+                            )}
+                          </CardContent>
+                        </Card>
+
+                        {msg.followUpQuestions && msg.followUpQuestions.length > 0 && (
+                          <Card className="border-amber-500/20 bg-amber-500/5">
                             <CardContent className="p-4">
-                              <div className="flex items-start gap-2">
-                                <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                                <p className="text-sm leading-relaxed text-foreground">{msg.text}</p>
+                              <div className="flex items-center gap-2 mb-2">
+                                <HelpCircle className="h-3.5 w-3.5 text-amber-500" />
+                                <span className="text-xs font-semibold text-foreground uppercase tracking-wider">
+                                  Follow-up Questions
+                                </span>
+                              </div>
+                              <div className="space-y-2">
+                                {msg.followUpQuestions.map((fq, idx) => (
+                                  <button
+                                    key={idx}
+                                    onClick={() => ask(fq.question)}
+                                    className="w-full rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-left text-xs transition-colors hover:bg-amber-500/10"
+                                  >
+                                    <span className="font-medium text-foreground">{fq.question}</span>
+                                    <span className="mt-0.5 block text-muted-foreground">{fq.context}</span>
+                                  </button>
+                                ))}
                               </div>
                             </CardContent>
                           </Card>
+                        )}
+
+                        {msg.missingData && msg.missingData.length > 0 && (
+                          <p className="text-xs text-muted-foreground italic">
+                            Missing data for full analysis: {msg.missingData.join(", ")}
+                          </p>
                         )}
                       </div>
                     )}

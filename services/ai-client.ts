@@ -24,7 +24,7 @@ export async function chatWithAI(
     body: JSON.stringify({
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
       temperature: options.temperature ?? 0.7,
-      max_tokens: options.maxTokens ?? 1024,
+      max_tokens: options.maxTokens ?? 2048,
     }),
   });
 
@@ -46,36 +46,56 @@ export async function generateGuruDebate(request: {
     savingsRate: number;
     recentTransactions: string;
     goals: string;
+    expenseAnalysis?: string;
+    bookKnowledge?: string;
   };
 }): Promise<{
   responses: { guruName: string; emoji: string; perspective: string; evidence: string }[];
   summary: string;
   confidence: number;
 }> {
-  const systemPrompt = `You are an expert financial debate moderator. Analyze the user's question from multiple financial expert perspectives.
+  const analysisSection = request.userContext.expenseAnalysis
+    ? `\nCategory Analysis:\n${request.userContext.expenseAnalysis}`
+    : "";
+
+  const booksSection = request.userContext.bookKnowledge
+    ? `\n\nRelevant Financial Book Passages:\n${request.userContext.bookKnowledge}`
+    : "\n\nNo supporting financial literature found. Generate advice based on financial data and reasoning only.";
+
+  const systemPrompt = `You are an expert Certified Financial Planner (CFP). Analyze the user's question using their actual financial data and retrieved financial knowledge.
+
+CRITICAL: Never give generic advice. Every recommendation must be specific, data-driven, and actionable.
 
 Expert Knowledge:
-${request.guruContexts.map((g) => `Guru: ${g.name}\nPhilosophy: ${g.philosophy}\nPassages: ${g.passages.map((p) => `"${p}"`).join(", ")}`).join("\n\n")}
+${request.guruContexts.map((g) => `Guru: ${g.name}\nPhilosophy: ${g.philosophy}\nPassages: ${g.passages.map((p) => `"${p}"`).join(", ")}`).join("\n\n")}${booksSection}
 
 User Financial Context:
 - Monthly Income: ₹${request.userContext.monthlyIncome.toLocaleString()}
 - Monthly Spending: ₹${request.userContext.monthlySpending.toLocaleString()}
 - Savings Rate: ${request.userContext.savingsRate.toFixed(1)}%
 - Recent Transactions: ${request.userContext.recentTransactions}
-- Goals: ${request.userContext.goals}
+- Goals: ${request.userContext.goals}${analysisSection}
+
+Response Structure (follow exactly):
+1. Current Situation: Explain what the data shows
+2. Evidence: Show specific calculations and comparisons
+3. Why It Matters: Explain the financial impact
+4. Recommendation: Give a concrete, actionable step
+5. Expected Result: Estimate the savings or benefit
+6. Confidence Score: Rate 0-100% with reasoning
 
 Respond in JSON format only:
 {
   "responses": [
-    { "guruName": "...", "emoji": "...", "perspective": "...", "evidence": "..." }
+    { "guruName": "...", "emoji": "...", "perspective": "Current Situation + Evidence + Why It Matters", "evidence": "specific calculations and data" }
   ],
-  "summary": "personalized recommendation",
+  "summary": "Complete 6-part structured response",
   "confidence": 85
 }`;
 
   const result = await chatWithAI(
     [{ role: "system", content: systemPrompt }, { role: "user", content: request.query }],
-    { temperature: 0.7, maxTokens: 2048 }
+    { temperature: 0.4, maxTokens: 2048 }
   );
 
   try {
@@ -83,9 +103,14 @@ Respond in JSON format only:
   } catch {
     return {
       responses: [
-        { guruName: "AI Advisor", emoji: "🤖", perspective: "Based on your financial data.", evidence: result.slice(0, 500) },
+        {
+          guruName: "AI Financial Advisor",
+          emoji: "🤖",
+          perspective: `Based on analysis of your financial data: Income ₹${request.userContext.monthlyIncome.toLocaleString()}/mo, Spending ₹${request.userContext.monthlySpending.toLocaleString()}/mo, Savings Rate ${request.userContext.savingsRate.toFixed(1)}%.`,
+          evidence: request.userContext.recentTransactions.slice(0, 300),
+        },
       ],
-      summary: result.slice(0, 300),
+      summary: result.slice(0, 500),
       confidence: 70,
     };
   }

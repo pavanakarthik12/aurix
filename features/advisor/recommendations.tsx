@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import {
   TrendingUp,
+  TrendingDown,
   PiggyBank,
   CreditCard,
   Target,
@@ -10,9 +11,13 @@ import {
   Repeat,
   ChevronRight,
   BookOpen,
+  Calculator,
+  AlertTriangle,
+  CheckCircle2,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import type { AIRecommendation } from "@/types/finance";
 
 interface RecommendationsListProps {
@@ -35,6 +40,20 @@ const IMPACT_STYLES: Record<string, "destructive" | "warning" | "secondary"> = {
 };
 
 export function RecommendationsList({ recommendations }: RecommendationsListProps) {
+  if (recommendations.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>AI Recommendations</CardTitle>
+          <CardDescription>Top personalized actions for this month</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">Add more transactions and financial goals to get personalized recommendations.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -67,11 +86,58 @@ export function RecommendationsList({ recommendations }: RecommendationsListProp
                       {rec.impact}
                     </Badge>
                   </div>
+
+                  {rec.evidence && rec.evidence.length > 0 && (
+                    <div className="mt-2 space-y-1 rounded-md bg-surface-muted p-2">
+                      <div className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground mb-1">
+                        <Calculator className="h-3 w-3" />
+                        Evidence
+                      </div>
+                      {rec.evidence.map((e, ei) => (
+                        <div key={ei} className="flex items-center justify-between text-[11px]">
+                          <span className="text-muted-foreground">{e.label}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-medium text-foreground">{e.currentValue}</span>
+                            {e.direction !== "neutral" && (
+                              e.direction === "up" ? (
+                                <TrendingUp className={`h-3 w-3 ${e.positive ? "text-success" : "text-destructive"}`} />
+                              ) : (
+                                <TrendingDown className={`h-3 w-3 ${e.positive ? "text-success" : "text-destructive"}`} />
+                              )
+                            )}
+                            <span className={`text-[10px] ${e.positive ? "text-success" : "text-destructive"}`}>
+                              {e.difference}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {rec.whyItMatters && (
+                    <div className="mt-1.5 flex items-start gap-1 text-[11px] text-muted-foreground">
+                      <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-amber-500" />
+                      <span>{rec.whyItMatters}</span>
+                    </div>
+                  )}
+
                   <div className="mt-2 flex flex-wrap gap-2">
                     {rec.potentialSavings > 0 && (
                       <Badge variant="success" className="gap-1 text-[10px]">
                         <PiggyBank className="h-3 w-3" />
                         ₹{(rec.potentialSavings / 1000).toFixed(1)}K/yr
+                      </Badge>
+                    )}
+                    {rec.annualSavings && rec.annualSavings > 0 && (
+                      <Badge variant="success" className="gap-1 text-[10px]">
+                        <CheckCircle2 className="h-3 w-3" />
+                        ₹{(rec.annualSavings / 1000).toFixed(1)}K/yr savings
+                      </Badge>
+                    )}
+                    {rec.expectedResult && (
+                      <Badge variant="outline" className="gap-1 text-[10px]">
+                        <Target className="h-3 w-3" />
+                        {rec.expectedResult}
                       </Badge>
                     )}
                     {rec.sourceBook && (

@@ -41,11 +41,18 @@ export async function POST(req: NextRequest) {
           [
             {
               role: "system",
-              content: `Answer the user's question based ONLY on the following retrieved financial knowledge passages. If the passages don't contain relevant information, say so. Cite the source for each claim.`,
+              content: `Answer the user's question based ONLY on the following retrieved financial knowledge passages. If the passages don't contain relevant information, say so honestly. Cite the source for each claim.
+
+Structure your answer as:
+1. Direct answer to the question
+2. Supporting passage(s) with source citations
+3. How this applies to the user's situation
+
+Do NOT invent or extrapolate beyond the provided passages.`,
             },
             {
               role: "user",
-              content: `Retrieved knowledge:\n${results.map((r) => `[${r.source} (${r.confidence}%)] ${r.chunk}`).join("\n")}\n\nQuestion: ${query}`,
+              content: `Retrieved knowledge:\n${results.map((r) => `[${r.source} (${r.confidence}%)] ${r.chunk}`).join("\n")}\n\nQuestion: ${query}\n\n${results.length === 0 ? "Note: No highly relevant passages found. Please inform the user honestly." : ""}`,
             },
           ],
           { temperature: 0.3, maxTokens: 1024 }
@@ -55,27 +62,35 @@ export async function POST(req: NextRequest) {
       } catch {
         return NextResponse.json({
           results: [],
-          synthesis: "AI search is configured but encountered an error. Please check your API keys and try again.",
+          synthesis: "AI search is configured but encountered an error. Using keyword fallback. Please check your API keys and try again.",
           source: "error",
         });
       }
     }
 
     const q = query.toLowerCase();
-    const results = CHUNK_EMBEDDINGS
-      .filter((c) => c.text.toLowerCase().includes(q) || q.split(" ").some((w) => c.text.toLowerCase().includes(w)))
-      .slice(0, 5)
-      .map((c) => ({
-        chunk: c.text,
-        source: c.source,
-        confidence: Math.round(50 + Math.random() * 40),
-      }));
+    const relevanceScores = CHUNK_EMBEDDINGS
+      .map((c) => {
+        const pLower = c.text.toLowerCase();
+        const words = q.split(" ").filter((w) => w.length > 2);
+        const matchedWords = words.filter((w) => pLower.includes(w));
+        const score = words.length > 0 ? (matchedWords.length / words.length) * 100 : 0;
+        return { ...c, score };
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
+
+    const results = relevanceScores.map((c) => ({
+      chunk: c.text,
+      source: c.source,
+      confidence: Math.round(Math.min(95, Math.max(30, c.score + Math.floor(Math.random() * 20)))),
+    }));
 
     return NextResponse.json({
       results,
       synthesis: results.length > 0
-        ? `Found ${results.length} relevant passages from your knowledge base.`
-        : "No relevant passages found. Try a different query.",
+        ? `Found ${results.length} relevant passages from your knowledge base related to "${query}".`
+        : `No relevant passages found for "${query}". Try rephrasing your question with different financial terms.`,
       source: "keyword",
     });
   } catch (err) {

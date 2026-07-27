@@ -5,10 +5,62 @@ import type {
   PredictionResult,
   AIInsight,
   AIAgentTool,
+  FinancialGoal,
+  Transaction,
+  ExpenseAnalysis,
 } from "@/types/finance";
 import { FINANCIAL_GURUS, ADVICE_PRINCIPLES } from "@/lib/financial-advice";
-import { MOCK_TRANSACTIONS, EXPENSE_BREAKDOWN, SPENDING_TREND } from "@/lib/mock-data";
+import { EXPENSE_BREAKDOWN, SPENDING_TREND } from "@/lib/mock-data";
 import { isAIReal } from "@/lib/config";
+import {
+  getMonthlyTransactions,
+  totalSpending,
+  savingsRate,
+  generateExpenseAnalysis,
+  categoryInsights,
+  detectAnomalies,
+  generatePredictionsFromData,
+  generateRecommendationsFromData,
+  generateStructuredResponse,
+  generateFollowUpQuestions,
+  searchFinancialBooks,
+  groupByCategory,
+  categoryTotals,
+} from "@/lib/financial-engine";
+import { getRelevantGuruPassages } from "@/lib/guru-knowledge";
+import { useExpensesStore } from "@/store/expenses-store";
+
+const DEFAULT_INCOME = 75000;
+
+function getTransactions(): Transaction[] {
+  if (typeof window === "undefined") return [];
+  try {
+    return useExpensesStore.getState().transactions || [];
+  } catch {
+    return [];
+  }
+}
+
+function getGoals(): FinancialGoal[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const { MOCK_GOALS } = require("@/lib/mock-data");
+    return MOCK_GOALS as FinancialGoal[];
+  } catch {
+    return [];
+  }
+}
+
+function getIncome(): number {
+  if (typeof window === "undefined") return DEFAULT_INCOME;
+  try {
+    const { usePersonaStore } = require("@/store/persona-store");
+    const profile = usePersonaStore.getState().profile;
+    return profile.monthlyIncome || DEFAULT_INCOME;
+  } catch {
+    return DEFAULT_INCOME;
+  }
+}
 
 async function apiCall<T>(endpoint: string, body: Record<string, unknown>): Promise<T | null> {
   try {
@@ -24,51 +76,73 @@ async function apiCall<T>(endpoint: string, body: Record<string, unknown>): Prom
   }
 }
 
-function matchGurus(query: string): GuruResponse[] {
+function matchGurus(query: string, analysis?: ExpenseAnalysis[]): GuruResponse[] {
   const normalized = query.toLowerCase();
   const matched = ADVICE_PRINCIPLES.filter((p) =>
     p.keywords.some((k) => normalized.includes(k))
   );
   const selected = matched.length > 0 ? matched : ADVICE_PRINCIPLES.slice(0, 3);
   const deduped = new Map<string, GuruResponse>();
+
+  const books = searchFinancialBooks(query);
+  const bookContext = books.length > 0 ? `\n\nRelevant Financial Literature:\n${books.map((b) => `"${b.passage}" — ${b.source}`).join("\n")}` : "";
+
   for (const p of selected) {
     const guru = FINANCIAL_GURUS.find((g) => g.id === p.guruId);
     if (guru && !deduped.has(guru.id)) {
+      let advice = p.advice;
+      if (analysis && analysis.length > 0) {
+        const relevantAlert = analysis.find((a) => {
+          const catKeywords = [a.category, ...a.category.split("-")];
+          return p.keywords.some((k) => catKeywords.some((ck) => k.includes(ck) || ck.includes(k)));
+        });
+        if (relevantAlert && relevantAlert.isAlert) {
+          advice += ` For example, your ${relevantAlert.category} spending is ₹${relevantAlert.currentMonth.toLocaleString()} (${relevantAlert.changeVsAvg3 > 0 ? "+" : ""}${relevantAlert.changeVsAvg3}% vs average).`;
+        }
+      }
       deduped.set(guru.id, {
         guruId: guru.id,
         guruName: guru.name,
         emoji: guru.emoji,
         philosophy: guru.philosophy,
         principle: p.principle,
-        advice: p.advice,
+        advice: advice + bookContext,
       });
     }
   }
   return Array.from(deduped.values());
 }
 
-function generateSummary(query: string, responses: GuruResponse[]): string {
-  const totalSpending = EXPENSE_BREAKDOWN.reduce((s, c) => s + c.amount, 0);
-  const monthlyIncome = 75000;
-  const savingsRate = ((monthlyIncome - totalSpending) / monthlyIncome) * 100;
-  if (responses.length === 0) {
-    return "Based on your financial profile, consider reviewing your spending categories and setting clear savings goals before making this decision.";
-  }
-  return `Considering your monthly income of ₹${(monthlyIncome / 1000).toFixed(0)}K and current savings rate of ${savingsRate.toFixed(0)}%, the most prudent path aligns with ${responses[0]?.guruName || "sound financial principles"}. Your current spending across all categories totals ₹${(totalSpending / 1000).toFixed(0)}K/month.`;
-}
-
 export async function getGuruDebate(query: string): Promise<GuruDebate> {
+  const transactions = getTransactions();
+  const analysis = generateExpenseAnalysis(transactions);
+  const income = getIncome();
+  const spending = totalSpending(getMonthlyTransactions(transactions, 1));
+  const rate = savingsRate(income, spending);
+
   if (isAIReal()) {
     const result = await apiCall<{ responses: GuruResponse[]; summary: string; confidence: number }>(
-      "/api/advisor", { query, mode: "debate" }
+      "/api/advisor", {
+        query,
+        mode: "debate",
+        userContext: {
+          transactions: transactions.slice(0, 20),
+          income,
+          analysis: analysis.filter((a) => a.currentMonth > 0),
+        },
+      }
     );
     if (result) {
       return { query, responses: result.responses, summary: result.summary, confidence: result.confidence };
     }
   }
-  const responses = matchGurus(query);
-  const summary = generateSummary(query, responses);
-  const confidence = Math.min(95, 60 + responses.length * 10);
+
+  const responses = matchGurus(query, analysis);
+  const summary = generateStructuredResponse(query, analysis, transactions, income, getGoals()).split("\n\n")[0];
+  const confidence = Math.min(95, Math.round(60 + responses.length * 8 +
+    (transactions.length >= 5 ? 8 : 0) +
+    (analysis.filter((a) => a.currentMonth > 0).length >= 3 ? 5 : 0)));
+
   return { query, responses, summary, confidence };
 }
 
@@ -108,175 +182,106 @@ export function detectTools(query: string): AIAgentTool[] {
 }
 
 export function getAIRecommendations(): AIRecommendation[] {
-  const monthlyIncome = 75000;
-  const totalSpending = EXPENSE_BREAKDOWN.reduce((s, c) => s + c.amount, 0);
-  return [
-    {
-      id: "rec-1",
-      title: "Increase monthly SIP by ₹2,000",
-      description: "Your current savings rate allows room for an additional ₹2,000/month in an index fund.",
-      category: "investment",
-      impact: "high",
-      potentialSavings: 24000,
-      reasoning: "Based on your income of ₹75K and current spending, reallocating 2.6% of income to investments would build long-term wealth.",
-      sourceBook: "The Warren Buffett Way",
-      sourceAuthor: "Robert Hagstrom",
-      confidence: 88,
-    },
-    {
-      id: "rec-2",
-      title: "Reduce dining out by ₹2,500/month",
-      description: "Your food category is 18% above average. A weekly cap would recover significant spend.",
-      category: "spending",
-      impact: "high",
-      potentialSavings: 30000,
-      reasoning: "Dining out is your fastest-growing expense category. Trimming it aligns with your emergency fund goal.",
-      sourceBook: "I Will Teach You To Be Rich",
-      sourceAuthor: "Ramit Sethi",
-      confidence: 92,
-    },
-    {
-      id: "rec-3",
-      title: "Cancel unused subscription services",
-      description: "You have 3 subscriptions totaling ₹1,847/month that you rarely use.",
-      category: "subscription",
-      impact: "medium",
-      potentialSavings: 22164,
-      reasoning: "Subscription creep is reducing your savings rate by 2.5%. A quarterly audit prevents unnecessary bleed.",
-      confidence: 85,
-    },
-    {
-      id: "rec-4",
-      title: "Increase emergency fund contribution",
-      description: "You're at 70% of your target. Accelerating contributions gets you there 2 months early.",
-      category: "savings",
-      impact: "medium",
-      potentialSavings: 0,
-      reasoning: "A fully-funded emergency fund is the foundation of financial stability per Dave Ramsey's Baby Steps.",
-      sourceBook: "The Total Money Makeover",
-      sourceAuthor: "Dave Ramsey",
-      confidence: 90,
-    },
-    {
-      id: "rec-5",
-      title: "Delay the next large purchase by 2 months",
-      description: "Waiting will keep you above your 20% savings target without stress.",
-      category: "budget",
-      impact: "low",
-      potentialSavings: 0,
-      reasoning: "Your current cash flow supports this delay comfortably. Patience prevents lifestyle inflation.",
-      sourceBook: "The Psychology of Money",
-      sourceAuthor: "Morgan Housel",
-      confidence: 78,
-    },
-  ];
+  const transactions = getTransactions();
+  const income = getIncome();
+  const goals = getGoals();
+  const analysis = generateExpenseAnalysis(transactions);
+  return generateRecommendationsFromData(analysis, income, transactions, goals);
 }
 
 export function getPredictions(): PredictionResult[] {
-  const totalSpending = EXPENSE_BREAKDOWN.reduce((s, c) => s + c.amount, 0);
-  const monthlyIncome = 75000;
-  const currentSavings = monthlyIncome - totalSpending;
-  return [
-    {
-      month: "Aug 2026",
-      predictedExpenses: totalSpending + 1200,
-      predictedSavings: currentSavings - 1200,
-      confidence: 85,
-      cashFlow: monthlyIncome - totalSpending - 1200,
-      budgetOverflow: false,
-      goalCompletionPercent: 72,
-    },
-    {
-      month: "Sep 2026",
-      predictedExpenses: totalSpending + 800,
-      predictedSavings: currentSavings - 800,
-      confidence: 72,
-      cashFlow: monthlyIncome - totalSpending - 800,
-      budgetOverflow: false,
-      goalCompletionPercent: 75,
-    },
-    {
-      month: "Oct 2026",
-      predictedExpenses: totalSpending + 3500,
-      predictedSavings: currentSavings - 3500,
-      confidence: 60,
-      cashFlow: monthlyIncome - totalSpending - 3500,
-      budgetOverflow: true,
-      goalCompletionPercent: 78,
-    },
-  ];
+  const transactions = getTransactions();
+  const income = getIncome();
+  return generatePredictionsFromData(transactions, income);
 }
 
 export async function getSpendingInsights(): Promise<AIInsight[]> {
+  const transactions = getTransactions();
+  const analysis = generateExpenseAnalysis(transactions);
+
   if (isAIReal()) {
-    const result = await apiCall<{ insights: AIInsight[] }>("/api/insights", {});
+    const result = await apiCall<{ insights: AIInsight[] }>("/api/insights", {
+      transactions: transactions.slice(0, 30),
+      analysis,
+    });
     if (result?.insights) return result.insights;
   }
-  return [
-    {
-      id: "insight-1",
-      title: "Food spending is up 18% this month",
-      description: "You spent ₹9,600 on food vs. your monthly average of ₹8,140. The increase is driven by weekend dining out.",
-      metric: { value: "18%", direction: "up", positive: false },
-      type: "spending",
-      severity: "warning",
-    },
-    {
-      id: "insight-2",
-      title: "Transportation costs decreased 24%",
-      description: "Work-from-home days increased this month, saving ₹1,300 in commute costs.",
-      metric: { value: "24%", direction: "down", positive: true },
-      type: "spending",
-      severity: "info",
-    },
-    {
-      id: "insight-3",
-      title: "Subscription services consuming ₹1,847/month",
-      description: "Netflix, Spotify, and a cloud storage subscription are all active. Review for overlap.",
-      metric: { value: "₹1,847/mo", direction: "up", positive: false },
-      type: "subscription",
-      severity: "warning",
-    },
-    {
-      id: "insight-4",
-      title: "Weekend shopping accounts for 38% of discretionary spend",
-      description: "Most of your shopping happens on Saturday and Sunday afternoons — an impulse pattern.",
+
+  const computedInsights = categoryInsights(analysis);
+  const anomalies = detectAnomalies(transactions);
+  const allInsights = [...computedInsights, ...anomalies];
+
+  if (allInsights.length === 0) {
+    const income = getIncome();
+    const currentTotal = totalSpending(getMonthlyTransactions(transactions, 1));
+    const rate = savingsRate(income, currentTotal);
+    allInsights.push({
+      id: `insight-base-${Date.now()}`,
+      title: `Savings rate is ${rate.toFixed(0)}%`,
+      description: `You're saving ₹${(income - currentTotal).toLocaleString()} out of ₹${income.toLocaleString()} monthly income.`,
+      metric: { value: `${rate.toFixed(0)}%`, direction: rate >= 20 ? "up" : "down", positive: rate >= 20 },
+      type: "savings",
+      severity: rate >= 20 ? "info" : rate >= 10 ? "warning" : "critical",
+    });
+    allInsights.push({
+      id: `insight-tx-${Date.now()}`,
+      title: `${transactions.length} transactions recorded`,
+      description: `Your average transaction is ₹${transactions.length > 0 ? Math.round(currentTotal / transactions.length).toLocaleString() : 0}.`,
       type: "pattern",
       severity: "info",
-    },
-    {
-      id: "insight-5",
-      title: "Duplicate payment detected at Blue Tokai Coffee",
-      description: "Two transactions of ₹480 each on the same day — one may be a duplicate.",
-      type: "anomaly",
-      severity: "critical",
-    },
-    {
-      id: "insight-6",
-      title: "Savings rate improved to 24%",
-      description: "You're now saving ₹18,700/month — up from 22% last month. Consistent progress.",
-      metric: { value: "24%", direction: "up", positive: true },
-      type: "savings",
-      severity: "info",
-    },
-  ];
+    });
+  }
+
+  return allInsights;
 }
 
 export async function getMultiToolResponse(query: string): Promise<{
   tools: AIAgentTool[];
   guruDebate?: GuruDebate;
   summary: string;
+  structuredAdvice?: string;
+  followUpQuestions?: { question: string; context: string }[];
+  missingData?: string[];
 }> {
   const tools = detectTools(query);
+  const transactions = getTransactions();
+  const income = getIncome();
+  const goals = getGoals();
+  const analysis = generateExpenseAnalysis(transactions);
+  const books = searchFinancialBooks(query);
+
   const debate = await getGuruDebate(query);
-  let summary = debate.summary;
-  if (tools.includes("expense-extraction") || tools.includes("transaction-search")) {
-    const recentTx = MOCK_TRANSACTIONS.slice(0, 3);
-    summary += ` Your recent transactions include ${recentTx.map((t) => `${t.merchant} (₹${t.amount})`).join(", ")}.`;
+
+  const structured = generateStructuredResponse(query, analysis, transactions, income, goals);
+  const followUps = generateFollowUpQuestions(transactions, income, goals);
+
+  const missingData: string[] = [];
+  if (!income || income <= 0) missingData.push("monthly income");
+  if (transactions.length < 3) missingData.push("recent transactions");
+  if (goals.length === 0) missingData.push("financial goals");
+
+  let summary = structured;
+  if (books.length > 0) {
+    summary += `\n\n**Book Knowledge Applied**\n${books.slice(0, 2).map((b) => `"${b.passage}" — ${b.source}`).join("\n")}`;
   }
-  if (tools.includes("budget-planner")) {
-    const total = EXPENSE_BREAKDOWN.reduce((s, c) => s + c.amount, 0);
-    summary += ` Your total monthly spending is ₹${(total / 1000).toFixed(0)}K.`;
+  if (books.length === 0) {
+    summary += `\n\n**No supporting financial literature found.**`;
   }
-  return { tools, guruDebate: debate, summary };
+
+  if (missingData.length > 0) {
+    summary += `\n\n**Missing Information**\nI currently don't have enough financial information to answer fully accurately. Please provide: ${missingData.join(", ")}.`;
+  }
+
+  if (transactions.length === 0) {
+    summary = "I don't yet have enough spending history to recommend a monthly budget. Upload at least one month of expenses or connect your expense sources.";
+  }
+
+  return {
+    tools,
+    guruDebate: debate,
+    summary,
+    structuredAdvice: structured,
+    followUpQuestions: followUps,
+    missingData,
+  };
 }

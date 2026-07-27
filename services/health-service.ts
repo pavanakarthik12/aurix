@@ -1,46 +1,97 @@
-import type { FinancialHealthScore, TimelineEvent } from "@/types/finance";
-import { EXPENSE_BREAKDOWN } from "@/lib/mock-data";
+import type { FinancialHealthScore, TimelineEvent, Transaction, FinancialGoal } from "@/types/finance";
+import { EXPENSE_BREAKDOWN, SPENDING_TREND, MOCK_GOALS } from "@/lib/mock-data";
+import {
+  generateExpenseAnalysis,
+  totalSpending,
+  savingsRate,
+  getMonthlyTransactions,
+} from "@/lib/financial-engine";
+import { useExpensesStore } from "@/store/expenses-store";
+
+function getTransactions(): Transaction[] {
+  if (typeof window === "undefined") return [];
+  try {
+    return useExpensesStore.getState().transactions || [];
+  } catch {
+    return [];
+  }
+}
 
 function calculateHealthScoreLocal(): FinancialHealthScore {
-  const totalSpending = EXPENSE_BREAKDOWN.reduce((s, c) => s + c.amount, 0);
-  const monthlyIncome = 75000;
-  const savings = monthlyIncome - totalSpending;
-  const savingsRate = (savings / monthlyIncome) * 100;
+  const transactions = getTransactions();
+  const hasTransactions = transactions.length > 0;
 
-  const savingsRateScore = Math.min(100, (savingsRate / 30) * 100);
-  const emergencyFundScore = 70;
-  const budgetAdherenceScore = 76;
-  const goalProgressScore = 72;
+  let totalSpendingValue: number;
+  let monthlyIncome = 75000;
+  let savings: number;
+  let rate: number;
+
+  if (hasTransactions) {
+    const currentMonthTxs = getMonthlyTransactions(transactions, 1);
+    totalSpendingValue = totalSpending(currentMonthTxs);
+    savings = monthlyIncome - totalSpendingValue;
+    rate = savingsRate(monthlyIncome, totalSpendingValue);
+  } else {
+    totalSpendingValue = EXPENSE_BREAKDOWN.reduce((s, c) => s + c.amount, 0);
+    savings = monthlyIncome - totalSpendingValue;
+    rate = (savings / monthlyIncome) * 100;
+  }
+
+  const analysis = hasTransactions ? generateExpenseAnalysis(transactions) : [];
+  const alerts = analysis.filter((a) => a.isAlert);
+
+  const savingsRateScore = Math.min(100, Math.round((rate / 30) * 100));
+
+  const recentMonths = SPENDING_TREND.slice(-3);
+  const spendingValues = recentMonths.map((m) => m.spending);
+  const spendingMean = spendingValues.reduce((a, b) => a + b, 0) / spendingValues.length;
+  const spendingVariance = spendingValues.reduce((s, v) => s + Math.pow(v - spendingMean, 2), 0) / spendingValues.length;
+  const stabilityScore = Math.max(0, 100 - spendingVariance / 500);
+
+  const goalProgressValues = MOCK_GOALS.map((g) =>
+    g.targetAmount > 0 ? (g.currentAmount / g.targetAmount) * 100 : 0
+  );
+  const avgGoalProgress = goalProgressValues.length > 0
+    ? goalProgressValues.reduce((s, v) => s + v, 0) / goalProgressValues.length
+    : 72;
+
+  const budgetAdherenceScore = alerts.length === 0
+    ? 76
+    : Math.max(40, 100 - alerts.length * 15 - alerts.reduce((s, a) => s + Math.abs(a.changeVsAvg3), 0) * 0.2);
+
+  const emergencyFundScore = Math.min(100, Math.round((avgGoalProgress / 100) * 70 + 30));
 
   const overall = Math.round(
     savingsRateScore * 0.2 +
     82 * 0.15 +
     emergencyFundScore * 0.15 +
-    70 * 0.12 +
+    Math.round(stabilityScore) * 0.12 +
     budgetAdherenceScore * 0.12 +
-    goalProgressScore * 0.1 +
+    Math.round(avgGoalProgress) * 0.1 +
     68 * 0.08 +
     52 * 0.08
   );
 
+  const recs: string[] = [];
+  if (rate < 20) recs.push(`Increase your savings rate from ${Math.round(rate)}% to 20% of income (₹${Math.round(monthlyIncome * 0.2 - (monthlyIncome - totalSpendingValue))}/mo more)`);
+  if (emergencyFundScore < 70) recs.push("Build a 3-6 month emergency fund for financial security");
+  if (alerts.length > 0) recs.push(`Review spending in ${alerts.map((a) => a.category).join(", ")} (${alerts.length} categories exceeding normal range)`);
+  if (recs.length === 0) recs.push("Maintain your current financial habits — you're on track!");
+
   return {
     overall,
-    savingsRate: Math.round(savingsRateScore),
+    savingsRate: savingsRateScore,
     debtRatio: 82,
-    emergencyFund: emergencyFundScore,
-    expenseStability: 70,
-    budgetAdherence: budgetAdherenceScore,
-    goalProgress: goalProgressScore,
+    emergencyFund: Math.round(emergencyFundScore),
+    expenseStability: Math.round(stabilityScore),
+    budgetAdherence: Math.round(budgetAdherenceScore),
+    goalProgress: Math.round(avgGoalProgress),
     incomeGrowth: 68,
     investmentRatio: 52,
-    trend: "up",
-    change: 3,
-    explanation: `Your Financial Health Score of ${overall}/100 reflects disciplined savings (${Math.round(savingsRate)}% rate) and strong budget adherence. The primary area for improvement is investment allocation.`,
-    recommendations: [
-      "Increase your investment allocation to at least 20% of income",
-      "Consider accelerating emergency fund contributions",
-      "Review subscription services for potential savings",
-    ],
+    trend: savingsRateScore > 65 ? "up" : "stable",
+    change: overall > 70 ? 3 : overall > 50 ? 1 : -2,
+    explanation: `Your Financial Health Score of ${overall}/100 reflects ${rate >= 20 ? "healthy" : rate >= 10 ? "moderate" : "low"} savings (${Math.round(rate)}% rate) based on ${hasTransactions ? transactions.length + " transactions" : "your monthly spending data"}. ${alerts.length > 0 ? alerts.length + " spending categories need attention." : "Spending is within normal ranges."}`,
+    recommendations: recs,
   };
 }
 
@@ -52,52 +103,60 @@ export async function getFinancialHealthScore(): Promise<FinancialHealthScore> {
         const data = await res.json();
         return data;
       }
-    } catch { /* fall through to local calculation */ }
+    } catch {}
   }
   return calculateHealthScoreLocal();
 }
 
 export function getTimelineEvents(): TimelineEvent[] {
-  return [
-    {
-      id: "evt-1", type: "expense", title: "Blue Tokai Coffee", amount: 480,
-      date: "2026-07-18", category: "food", status: "completed",
-    },
-    {
-      id: "evt-2", type: "expense", title: "Uber Ride", amount: 320,
-      date: "2026-07-18", category: "transport", status: "completed",
-    },
-    {
-      id: "evt-3", type: "savings", title: "Monthly SIP Contribution", amount: 5000,
-      date: "2026-07-15", status: "completed", description: "Auto-invested in index fund",
-    },
-    {
-      id: "evt-4", type: "goal", title: "Emergency Fund Progress", amount: 210000,
-      date: "2026-07-15", status: "completed", description: "70% of ₹3,00,000 target reached",
-    },
-    {
-      id: "evt-5", type: "bill", title: "Rent Payment", amount: 18000,
-      date: "2026-07-05", status: "completed",
-    },
-    {
-      id: "evt-6", type: "purchase", title: "Amazon Shopping", amount: 2450,
-      date: "2026-07-17", category: "shopping", status: "completed",
-    },
-    {
-      id: "evt-7", type: "payment", title: "Credit Card Bill Due", amount: 12400,
-      date: "2026-08-05", status: "upcoming", description: "Full payment recommended to avoid interest",
-    },
-    {
-      id: "evt-8", type: "bill", title: "Electricity Bill Due", amount: 1740,
-      date: "2026-08-10", category: "utilities", status: "upcoming",
-    },
-    {
-      id: "evt-9", type: "investment", title: "SIP Contribution", amount: 5000,
-      date: "2026-08-15", status: "upcoming", description: "Monthly index fund investment",
-    },
-    {
-      id: "evt-10", type: "goal", title: "Goa Trip Fund Milestone", amount: 48000,
-      date: "2026-09-01", status: "upcoming", description: "Target: ₹80,000 — estimated 60%",
-    },
-  ];
+  const transactions = getTransactions();
+  const events: TimelineEvent[] = [];
+
+  const recentTxs = transactions
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 5);
+
+  for (const tx of recentTxs) {
+    events.push({
+      id: `tx-${tx.id}`,
+      type: "expense",
+      title: tx.merchant,
+      amount: tx.amount,
+      date: tx.date,
+      category: tx.category,
+      status: "completed",
+    });
+  }
+
+  for (const goal of MOCK_GOALS) {
+    const progress = goal.targetAmount > 0 ? (goal.currentAmount / goal.targetAmount) * 100 : 0;
+    events.push({
+      id: `goal-${goal.id}`,
+      type: "goal",
+      title: `${goal.title} Progress`,
+      amount: goal.currentAmount,
+      date: new Date().toISOString().split("T")[0],
+      status: progress >= 100 ? "completed" : "upcoming",
+      description: `${Math.round(progress)}% of ₹${(goal.targetAmount / 100000).toFixed(1)}L target reached`,
+    });
+  }
+
+  if (events.length === 0) {
+    return [
+      {
+        id: "evt-1", type: "expense", title: "Blue Tokai Coffee", amount: 480,
+        date: "2026-07-18", category: "food", status: "completed",
+      },
+      {
+        id: "evt-2", type: "savings", title: "Monthly SIP Contribution", amount: 5000,
+        date: "2026-07-15", status: "completed", description: "Auto-invested in index fund",
+      },
+      {
+        id: "evt-3", type: "bill", title: "Rent Payment", amount: 18000,
+        date: "2026-07-05", status: "completed",
+      },
+    ];
+  }
+
+  return events;
 }
