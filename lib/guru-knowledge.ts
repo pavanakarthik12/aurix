@@ -94,6 +94,38 @@ export const GURU_KNOWLEDGE: GuruKnowledge[] = [
       },
     ],
   },
+  {
+    name: "Raghunath Anant Mashelkar",
+    emoji: "💡",
+    philosophy: "Frugal engineering (MLM: More from Less for More), innovation-driven financial efficiency, affordable excellence in India.",
+    books: [
+      {
+        title: "Reinventing India & MLM Principles",
+        passages: [
+          "MLM: More from Less for More people — achieving financial abundance by innovating and eliminating waste in daily expenses.",
+          "Frugality is not about deprivation; it is about smart engineering of your resources to generate maximum life value.",
+          "In the Indian context, financial resilience comes from creating sustainable habits rather than copying western consumerism.",
+          "Do not solve problems by throwing money at them; solve them by intelligent optimization and budgeting.",
+        ],
+      },
+    ],
+  },
+  {
+    name: "Suze Orman (India Edition)",
+    emoji: "🛡️",
+    philosophy: "People first, then money, then things. Protecting against Indian inflation, medical emergencies, and smart SIP discipline.",
+    books: [
+      {
+        title: "The Money Class (India Edition)",
+        passages: [
+          "In India, medical inflation is rising at over 10-14% per year. Having proper health insurance is the single most important investment you can make for your family.",
+          "Never skip your monthly mutual fund SIP on payday. Treat your savings as a non-negotiable bill that you owe yourself first.",
+          "A sweep-in fixed deposit is a great emergency fund tool in Indian banks — you get the liquidity of a savings account with the high interest rate of an FD.",
+          "Avoid the trap of gold and real estate if it locks up all your liquidity. You cannot buy groceries with brick and mortar.",
+        ],
+      },
+    ],
+  },
 ];
 
 export function getRelevantGuruPassages(query: string): {

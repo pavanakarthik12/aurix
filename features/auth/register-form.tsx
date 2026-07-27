@@ -36,6 +36,7 @@ export function RegisterForm() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting, isSubmitSuccessful },
   } = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
@@ -103,7 +104,11 @@ export function RegisterForm() {
       </div>
 
       <div className="flex items-start gap-2">
-        <Checkbox id="terms" className="mt-0.5" {...register("terms")} />
+        <Checkbox
+          id="terms"
+          className="mt-0.5"
+          onCheckedChange={(checked) => setValue("terms", checked === true, { shouldValidate: true })}
+        />
         <Label htmlFor="terms" className="text-sm font-normal leading-snug text-muted-foreground">
           I agree to the Terms of Service and Privacy Policy
         </Label>
