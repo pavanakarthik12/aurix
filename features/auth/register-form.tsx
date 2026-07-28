@@ -107,7 +107,7 @@ export function RegisterForm() {
         <Checkbox
           id="terms"
           className="mt-0.5"
-          onCheckedChange={(checked) => setValue("terms", checked === true, { shouldValidate: true })}
+          onCheckedChange={(checked) => setValue("terms", (checked === true ? true : false) as any, { shouldValidate: true })}
         />
         <Label htmlFor="terms" className="text-sm font-normal leading-snug text-muted-foreground">
           I agree to the Terms of Service and Privacy Policy

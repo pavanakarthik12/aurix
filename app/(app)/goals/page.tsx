@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Plus, Target } from "lucide-react";
+import Link from "next/link";
+import { Plus, Target, Calculator } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
@@ -18,10 +19,18 @@ export default function GoalsPage() {
         title="Financial Goals"
         description="Track meaningful milestones with clear, honest numbers."
         actions={
-          <Button size="sm">
-            <Plus className="h-4 w-4" />
-            New goal
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" asChild>
+              <Link href="/goals/calculator">
+                <Calculator className="mr-1.5 h-4 w-4" />
+                Tax & SIP Tools
+              </Link>
+            </Button>
+            <Button size="sm">
+              <Plus className="mr-1.5 h-4 w-4" />
+              New goal
+            </Button>
+          </div>
         }
       />
 
