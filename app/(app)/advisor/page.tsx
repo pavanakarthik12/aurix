@@ -8,6 +8,8 @@ import { getFinancialHealthScore } from "@/services/health-service";
 import { getTimelineEvents } from "@/services/health-service";
 import { isAIReal, getAIProviderLabel } from "@/lib/config";
 
+import { FinancialNewsFeed } from "@/features/advisor/financial-news-feed";
+
 export const metadata: Metadata = { title: "AI Advisor" };
 
 export default async function AdvisorPage() {
@@ -16,7 +18,7 @@ export default async function AdvisorPage() {
   const aiLive = isAIReal();
 
   return (
-    <div className="mx-auto max-w-7xl">
+    <div className="mx-auto max-w-7xl space-y-8">
       <PageHeader
         title="AI Advisor"
         description="Your intelligent financial assistant with multi-guru intelligence."
@@ -35,6 +37,10 @@ export default async function AdvisorPage() {
           <HealthScoreCard score={healthScore} />
           <FinancialTimeline events={timelineEvents} />
         </div>
+      </div>
+
+      <div className="border-t border-border/60 pt-8">
+        <FinancialNewsFeed />
       </div>
     </div>
   );
