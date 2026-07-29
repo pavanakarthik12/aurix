@@ -39,6 +39,18 @@ export const FINANCIAL_GURUS: FinancialGuru[] = [
     emoji: "🧾",
     philosophy: "Debt snowball, emergency funds, cash-only discipline.",
   },
+  {
+    id: "mashelkar",
+    name: "Raghunath Anant Mashelkar",
+    emoji: "💡",
+    philosophy: "Frugal engineering (MLM: More from Less for More) & Gandhian financial discipline in India.",
+  },
+  {
+    id: "orman",
+    name: "Suze Orman (India Edition)",
+    emoji: "🛡️",
+    philosophy: "People first, then money, then things. Protecting against Indian inflation, medical emergencies, and automated SIPs.",
+  },
 ];
 
 export const ADVICE_PRINCIPLES: AdvicePrinciple[] = [
@@ -113,6 +125,22 @@ export const ADVICE_PRINCIPLES: AdvicePrinciple[] = [
     keywords: ["raise", "salary increase", "promotion", "more money"],
     principle: "Don't let spending grow as fast as income.",
     advice: "When your income rises, increase your savings rate before you increase your lifestyle. Bank the difference.",
+  },
+  {
+    id: "frugal-engineering-mlm",
+    guruId: "mashelkar",
+    topics: ["spending", "budget", "innovation"],
+    keywords: ["save", "cut costs", "reduce expense", "frugal", "india", "budget", "tax", "regime", "tax regime"],
+    principle: "MLM: More from Less for More people.",
+    advice: "Apply Gandhian engineering to your monthly budget: optimize every rupee by eliminating recurring lifestyle waste without sacrificing quality of life.",
+  },
+  {
+    id: "indian-inflation-sip",
+    guruId: "orman",
+    topics: ["investing", "emergency", "sip"],
+    keywords: ["sip", "mutual fund", "inflation", "emergency", "health insurance", "invest", "india", "tax", "regime", "tax regime", "income", "wealth"],
+    principle: "People first, then money, then things.",
+    advice: "In India, medical inflation exceeds 10%. Build a sweep-in FD emergency fund and automate monthly SIPs on salary day before making lifestyle purchases.",
   },
 ];
 

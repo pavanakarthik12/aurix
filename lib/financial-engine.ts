@@ -290,7 +290,42 @@ export function generateStructuredResponse(
 
   const q = query.toLowerCase();
 
-  if (q.includes("save") || q.includes("savings") || q.includes("waste") || q.includes("wasting")) {
+  if (q.includes("tax") || q.includes("regime")) {
+    let incomeToUse = income;
+    const matchNumber = q.match(/(\d+[\d,]*)/);
+    if (matchNumber) {
+      const parsedNum = parseFloat(matchNumber[1].replace(/,/g, ""));
+      if (parsedNum > 0) {
+        incomeToUse = parsedNum > 200000 ? Math.round(parsedNum / 12) : parsedNum;
+      }
+    }
+    const taxRes = calculateIndianTax(incomeToUse);
+    situation = `Comparing the Old vs New Tax Regime for a monthly income of ₹${incomeToUse.toLocaleString()} (Annual: ₹${taxRes.annualIncome.toLocaleString()}).`;
+    evidence = `New Regime Tax: ₹${taxRes.newRegimeTax.toLocaleString()} (includes ₹75k standard deduction)
+Old Regime Tax: ₹${taxRes.oldRegimeTax.toLocaleString()} (includes ₹2.25L deductions/exemptions)
+Savings: ₹${taxRes.taxSavings.toLocaleString()}/year under the ${taxRes.recommendedRegime.toUpperCase()} Regime.`;
+    whyItMatters = `Choosing the optimal tax regime is critical to maximize your disposable income. Selecting the wrong regime would cost you an extra ₹${taxRes.taxSavings.toLocaleString()} in taxes this year.`;
+    recommendation = `Opt for the ${taxRes.recommendedRegime.toUpperCase()} Tax Regime. File Form 10-IEA if you have business income and wish to switch.`;
+    expectedResult = `Tax Liability: ₹${(taxRes.recommendedRegime === "new" ? taxRes.newRegimeTax : taxRes.oldRegimeTax).toLocaleString()}/year. Net Annual Savings: ₹${taxRes.taxSavings.toLocaleString()}.`;
+  } else if (q.includes("sip") || q.includes("compound") || q.includes("wealth") || q.includes("step-up") || q.includes("invest")) {
+    let sipAmt = 10000;
+    let years = 15;
+    const numbers = q.match(/\d+[\d,]*/g);
+    if (numbers && numbers.length > 0) {
+      sipAmt = parseFloat(numbers[0].replace(/,/g, ""));
+      if (numbers.length > 1) {
+        const secondNum = parseFloat(numbers[1].replace(/,/g, ""));
+        if (secondNum < 50) years = secondNum;
+      }
+    }
+    const sipRes = calculateSIPWealth(sipAmt, years, 12);
+    situation = `Compounding projection for a monthly SIP of ₹${sipAmt.toLocaleString()} over ${years} years at 12% expected return.`;
+    evidence = `Standard SIP: Total Invested ₹${sipRes.totalInvested.toLocaleString()} | Future Value ₹${sipRes.estimatedWealth.toLocaleString()} | Gain ₹${sipRes.wealthGain.toLocaleString()}
+10% Step-Up SIP: Total Invested ₹${sipRes.stepUpInvested.toLocaleString()} | Future Value ₹${sipRes.stepUpWealth.toLocaleString()} | Gain ₹${sipRes.stepUpGain.toLocaleString()}`;
+    whyItMatters = `Stepping up your monthly SIP by 10% annually increases your final accumulated wealth by ₹${(sipRes.stepUpWealth - sipRes.estimatedWealth).toLocaleString()} (+${Math.round(((sipRes.stepUpWealth - sipRes.estimatedWealth) / sipRes.estimatedWealth) * 100)}%).`;
+    recommendation = `Set up an automated monthly Mutual Fund SIP for ₹${sipAmt.toLocaleString()} and select the 10% Auto Step-up option.`;
+    expectedResult = `Estimated wealth of ₹${sipRes.stepUpWealth.toLocaleString()} after ${years} years.`;
+  } else if (q.includes("save") || q.includes("savings") || q.includes("waste") || q.includes("wasting")) {
     if (alerts.length > 0) {
       const top = alerts[0];
       situation = `Your ${CATEGORY_LABELS[top.category as keyof typeof CATEGORY_LABELS] || top.category} spending increased by ${Math.abs(top.changeVsAvg3)}% compared to your 3-month average (₹${top.currentMonth.toLocaleString()} vs ₹${top.average3Month.toLocaleString()}).`;
@@ -832,3 +867,136 @@ export function autoRecalculateHealthScore(transactions: Transaction[], goals: F
     recommendations: recs,
   };
 }
+
+/**
+ * Calculates Indian income tax comparing Old vs New tax regimes.
+ * Supports standard deductions and rebate sections (87A).
+ */
+export function calculateIndianTax(monthlyIncome: number): {
+  annualIncome: number;
+  newRegimeTax: number;
+  oldRegimeTax: number;
+  taxSavings: number;
+  recommendedRegime: "new" | "old";
+  advice: string;
+} {
+  const annualIncome = monthlyIncome * 12;
+
+  // New Regime Calculation (FY 2024-25 / AY 2025-26 rules)
+  // Standard Deduction: ₹75,000
+  const taxableNew = Math.max(0, annualIncome - 75000);
+  let newTax = 0;
+  if (taxableNew > 300000) {
+    if (taxableNew <= 700000) newTax += (taxableNew - 300000) * 0.05;
+    else {
+      newTax += 400000 * 0.05; // 3L to 7L (5%)
+      if (taxableNew <= 1000000) newTax += (taxableNew - 700000) * 0.10;
+      else {
+        newTax += 300000 * 0.10; // 7L to 10L (10%)
+        if (taxableNew <= 1200000) newTax += (taxableNew - 1000000) * 0.15;
+        else {
+          newTax += 200000 * 0.15; // 10L to 12L (15%)
+          if (taxableNew <= 1500000) newTax += (taxableNew - 1200000) * 0.20;
+          else {
+            newTax += 300000 * 0.20; // 12L to 15L (20%)
+            newTax += (taxableNew - 1500000) * 0.30; // Above 15L (30%)
+          }
+        }
+      }
+    }
+  }
+  // Section 87A Rebate: Nil tax up to taxable income of ₹7L
+  if (taxableNew <= 700000) {
+    newTax = 0;
+  }
+
+  // Old Regime Calculation
+  // Standard Deduction: ₹50,000, 80C Deduction: ₹1,50,000, 80D: ₹25,000
+  const deductionsOld = 50000 + 150000 + 25000;
+  const taxableOld = Math.max(0, annualIncome - deductionsOld);
+  let oldTax = 0;
+  if (taxableOld > 250000) {
+    if (taxableOld <= 500000) oldTax += (taxableOld - 250000) * 0.05;
+    else {
+      oldTax += 250000 * 0.05; // 2.5L to 5L (5%)
+      if (taxableOld <= 1000000) oldTax += (taxableOld - 500000) * 0.20;
+      else {
+        oldTax += 500000 * 0.20; // 5L to 10L (20%)
+        oldTax += (taxableOld - 1000000) * 0.30; // Above 10L (30%)
+      }
+    }
+  }
+  // Section 87A Rebate for Old Regime: Nil tax up to taxable income of ₹5L
+  if (taxableOld <= 500000) {
+    oldTax = 0;
+  }
+
+  // Add 4% Health & Education Cess
+  newTax = Math.round(newTax * 1.04);
+  oldTax = Math.round(oldTax * 1.04);
+
+  const recommendedRegime = newTax <= oldTax ? "new" : "old";
+  const taxSavings = Math.abs(oldTax - newTax);
+  const advice = recommendedRegime === "new"
+    ? `The New Tax Regime saves you ₹${taxSavings.toLocaleString()}/year. Even with standard tax deductions (80C, 80D) in the Old Regime, the lower tax slab rates in the New Regime yield better outcomes.`
+    : `The Old Tax Regime saves you ₹${taxSavings.toLocaleString()}/year. Your investments and deductions under Section 80C/80D reduce your taxable income enough to make the Old Regime preferable.`;
+
+  return {
+    annualIncome,
+    newRegimeTax: newTax,
+    oldRegimeTax: oldTax,
+    taxSavings,
+    recommendedRegime,
+    advice,
+  };
+}
+
+/**
+ * Calculates compounding wealth projection for a standard monthly SIP
+ * and an annual Step-Up SIP (which grows by 10% each year).
+ */
+export function calculateSIPWealth(
+  monthlySip: number,
+  years: number,
+  annualRate: number = 12
+): {
+  totalInvested: number;
+  estimatedWealth: number;
+  wealthGain: number;
+  stepUpInvested: number;
+  stepUpWealth: number;
+  stepUpGain: number;
+} {
+  const months = years * 12;
+  const monthlyRate = annualRate / 12 / 100;
+
+  // Standard SIP Compounding Calculation
+  let standardWealth = 0;
+  let standardInvested = monthlySip * months;
+  for (let i = 0; i < months; i++) {
+    standardWealth = (standardWealth + monthlySip) * (1 + monthlyRate);
+  }
+
+  // Step-Up SIP Compounding (increases by 10% every 12 months)
+  let stepUpWealth = 0;
+  let stepUpInvested = 0;
+  let currentSip = monthlySip;
+
+  for (let month = 1; month <= months; month++) {
+    stepUpWealth = (stepUpWealth + currentSip) * (1 + monthlyRate);
+    stepUpInvested += currentSip;
+    if (month % 12 === 0) {
+      currentSip = currentSip * 1.10; // increase monthly contribution by 10%
+    }
+  }
+
+  return {
+    totalInvested: Math.round(standardInvested),
+    estimatedWealth: Math.round(standardWealth),
+    wealthGain: Math.round(Math.max(0, standardWealth - standardInvested)),
+    stepUpInvested: Math.round(stepUpInvested),
+    stepUpWealth: Math.round(stepUpWealth),
+    stepUpGain: Math.round(Math.max(0, stepUpWealth - stepUpInvested)),
+  };
+}
+

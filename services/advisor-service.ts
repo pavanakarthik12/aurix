@@ -84,7 +84,11 @@ function matchGurus(query: string, analysis?: ExpenseAnalysis[]): GuruResponse[]
   const matched = ADVICE_PRINCIPLES.filter((p) =>
     p.keywords.some((k) => normalized.includes(k))
   );
-  const selected = matched.length > 0 ? matched : ADVICE_PRINCIPLES.slice(0, 3);
+  const selected = matched.length > 0 ? matched : [
+    ADVICE_PRINCIPLES[0], // Warren Buffett
+    ADVICE_PRINCIPLES.find(p => p.guruId === "mashelkar")!,
+    ADVICE_PRINCIPLES.find(p => p.guruId === "orman")!
+  ];
   const deduped = new Map<string, GuruResponse>();
 
   const books = searchFinancialBooks(query);

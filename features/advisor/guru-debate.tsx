@@ -16,6 +16,8 @@ const GURU_ACCENTS: Record<string, { border: string; bg: string; icon: string }>
   kiyosaki: { border: "border-blue-500/30", bg: "bg-blue-500/5", icon: "text-blue-500" },
   sethi: { border: "border-amber-500/30", bg: "bg-amber-500/5", icon: "text-amber-500" },
   ramsey: { border: "border-red-500/30", bg: "bg-red-500/5", icon: "text-red-500" },
+  mashelkar: { border: "border-purple-500/30", bg: "bg-purple-500/5", icon: "text-purple-500" },
+  orman: { border: "border-cyan-500/30", bg: "bg-cyan-500/5", icon: "text-cyan-500" },
 };
 
 export function GuruDebateView({ debate }: GuruDebateProps) {

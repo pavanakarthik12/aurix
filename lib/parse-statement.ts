@@ -13,14 +13,29 @@ export interface StatementParseResult {
   rows: StatementRow[];
   skippedCount: number;
   error: string | null;
+  detectedBank: "sbi" | "hdfc" | "icici" | "generic";
 }
 
-const DATE_HEADERS = ["date", "txn date", "transaction date", "value date"];
-const DESCRIPTION_HEADERS = ["description", "narration", "particulars", "details", "remarks"];
-const DEBIT_HEADERS = ["debit", "withdrawal", "withdrawal amt", "debit amount"];
-const CREDIT_HEADERS = ["credit", "deposit", "deposit amt", "credit amount"];
+const DATE_HEADERS = ["date", "txn date", "transaction date", "value date", "value dt", "txn dt"];
+const DESCRIPTION_HEADERS = ["description", "narration", "particulars", "details", "remarks", "transaction remarks"];
+const DEBIT_HEADERS = ["debit", "withdrawal", "withdrawal amt", "debit amount", "withdrawal amt.", "dr amt"];
+const CREDIT_HEADERS = ["credit", "deposit", "deposit amt", "credit amount", "deposit amt.", "cr amt"];
 const AMOUNT_HEADERS = ["amount", "amount (inr)", "txn amount"];
 const TYPE_HEADERS = ["type", "dr/cr", "transaction type", "cr/dr"];
+
+function detectBankFormat(headers: string[]): "sbi" | "hdfc" | "icici" | "generic" {
+  const headerStr = headers.join(" ");
+  if (headerStr.includes("txn date") && headerStr.includes("ref no./cheque no.")) {
+    return "sbi";
+  }
+  if (headerStr.includes("chq./ref.no.") && headerStr.includes("narration")) {
+    return "hdfc";
+  }
+  if (headerStr.includes("value dt") && headerStr.includes("particulars")) {
+    return "icici";
+  }
+  return "generic";
+}
 
 function splitCsvLine(line: string): string[] {
   const cells: string[] = [];
@@ -72,10 +87,11 @@ export function parseStatementCsv(csvText: string): StatementParseResult {
     .filter((l) => l.length > 0);
 
   if (lines.length < 2) {
-    return { rows: [], skippedCount: 0, error: "File is empty or has no data rows." };
+    return { rows: [], skippedCount: 0, error: "File is empty or has no data rows.", detectedBank: "generic" };
   }
 
   const headers = splitCsvLine(lines[0]).map((h) => h.toLowerCase().trim());
+  const detectedBank = detectBankFormat(headers);
 
   const dateCol = findColumn(headers, DATE_HEADERS);
   const descCol = findColumn(headers, DESCRIPTION_HEADERS);
@@ -90,6 +106,7 @@ export function parseStatementCsv(csvText: string): StatementParseResult {
       skippedCount: 0,
       error:
         "Couldn't detect statement columns. Expected headers like Date, Description/Narration, and Debit or Amount.",
+      detectedBank,
     };
   }
 
@@ -142,5 +159,5 @@ export function parseStatementCsv(csvText: string): StatementParseResult {
     rows.push({ merchant: description, amount, date, category });
   }
 
-  return { rows, skippedCount, error: null };
+  return { rows, skippedCount, error: null, detectedBank };
 }
