@@ -6,6 +6,8 @@ Aurix is a premium, AI-powered Financial Advisor & Expense Manager — not a cha
 
 This project is being built as a **Track B (Advanced)** submission — an 8-phase build with a distinctive "wow feature" layered into every phase, on top of the core functional requirements.
 
+> **Current status:** Phases 1–4 implemented · Phases 5–6 partially implemented · Phases 7–8 planned.
+
 ---
 
 ## ✨ What Aurix Does
@@ -30,9 +32,12 @@ This project is being built as a **Track B (Advanced)** submission — an 8-phas
 | Forms | React Hook Form + Zod |
 | Charts | Recharts |
 | Icons | Lucide |
-| Auth (structure) | Clerk |
-| Backend (structure, future) | FastAPI |
-| Database (future) | PostgreSQL + Prisma |
+| Auth | Client-side mock auth (hardcoded credentials + cookie middleware route protection); Clerk-ready structure |
+| Backend | FastAPI (Python) — Grok (xAI) AI provider, ChromaDB RAG, Tesseract OCR, SQLAlchemy |
+| Database | PostgreSQL via SQLAlchemy (aiosqlite fallback in dev) |
+| Vector DB | ChromaDB + BAAI/bge-base-en-v1.5 embeddings |
+| OCR | Tesseract.js (client) + pytesseract/OpenCV (server) |
+| ML | Naive Bayes expense categorizer |
 
 ---
 
@@ -84,27 +89,125 @@ The resulting persona is persisted (Zustand + localStorage) and surfaced everywh
 - Branded 404, 500 (`app/error.tsx`), and offline pages via a shared `StatusPage` component
 
 ### Floating AI Assistant
-A pulsing, bottom-right floating action button opens a slide-in assistant drawer. The assistant itself is a placeholder in Phase 1 — the surface is built so Phase 4/7's real advisory and voice features drop in without UI rework.
+A pulsing, bottom-right floating action button opens a slide-in assistant drawer. Built as a surface in Phase 1, it has since been upgraded to a working chat with guru debate and tool detection (see Phase 4).
+
+---
+
+## ✅ Phase 2 — OCR & Expense Extraction (Implemented)
+
+Receipt scanning, bank statement import, and SMS expense capture — with intelligence layered on top.
+
+### Receipt OCR
+- Screenshot upload with client-side Tesseract.js OCR and a progress indicator (`features/expenses/screenshot-upload.tsx`)
+- Receipt parsing with line-item extraction and OCR confidence scoring (`lib/parse-receipt.ts`)
+- Low-confidence extractions are flagged for manual review
+- Server-side pytesseract + OpenCV endpoint (`app/api/ocr`, `backend/app/ocr/`)
+
+### Bank Statement Import
+- CSV upload with automatic bank detection for SBI, HDFC, and ICICI formats (`lib/parse-statement.ts`)
+- Review-and-confirm flow before transactions land in the expense ledger
+
+### SMS Expense Parser
+- Parses Indian bank SMS notifications (UPI/Card/IMPS) with clipboard-paste support (`features/expenses/sms-ingest.tsx`)
+
+### 🧾 Wow Feature: AI Receipt Intelligence (partial)
+Validation and confidence-flagging scaffolding exists, but LLM reasoning over line items ("This purchase belongs to Dining…") and duplicate-receipt detection are not yet wired to the AI layer.
+
+### Missing / Next
+- LLM reasoning over extracted line items
+- Duplicate receipt detection
+
+---
+
+## ✅ Phase 3 — Smart Expense Analytics (Implemented)
+
+A full analytics engine powers the Expenses and Reports pages (`lib/financial-engine.ts`, ~1,000 lines):
+
+- Month-over-month and trailing 3/6-month category analysis with trend detection
+- Anomaly detection via z-score, IQR, and seasonal adjustments; weekend-vs-weekday patterns; merchant frequency and spending-spike alerts; budget-overrun detection
+- **ML categorization**: a Naive Bayes classifier (`lib/ml-categorize.ts`) trained on spending history, with keyword fallback (`lib/categorize.ts`)
+- Custom categories with a persisted store and backend sync
+- Financial health history tracking with auto-recalculation
+
+### 🧬 Wow Feature: Spending DNA Profile (missing)
+The Spending DNA radar chart (Needs / Lifestyle / Convenience / Impulse) with peer benchmarking ("You spend more on convenience than 82% of users") is **not yet built** — the analytics engine feeds it, the visualization is the next step.
+
+---
+
+## ✅ Phase 4 — RAG-Powered Financial Advisor (Implemented)
+
+### Multi-Guru AI Debate
+- 7 financial gurus — including Indian voices — with curated knowledge passages (`lib/guru-knowledge.ts`, `lib/financial-advice.ts`)
+- Debate UI where each guru answers from their philosophy, followed by an AI summary (`features/advisor/guru-debate.tsx`)
+- Advisor chat with chat / debate / insight modes and multi-tool detection
+
+### RAG Knowledge Base
+- Knowledge-base page with document upload and search (`app/(app)/knowledge-base/`)
+- Full backend RAG: ChromaDB vector store, BAAI/bge-base-en-v1.5 embeddings, LangChain chunking, PyMuPDF/docx loaders (`backend/app/rag/`)
+- Frontend `/api/rag/*` routes with keyword-search fallback
+
+### Financial Health Score
+- 8-factor weighted health score with history and AI-driven recommendations (`lib/financial-engine.ts`, `services/health-service.ts`)
+
+### Missing / Next
+- The frontend `/api/rag/search` route builds its client-side embeddings with empty vectors (backend RAG works; the client semantic-search path still needs wiring)
+
+---
+
+## ⚠️ Phase 5 — Financial Goal Planning (Partial)
+
+- Goals store + progress cards + goal-aware recommendations and health score (`app/(app)/goals/`)
+- **Tax & SIP Calculator**: Old vs New tax regime comparison with §87A rebate, plus standard and step-up SIP compounding (`app/(app)/goals/calculator/`)
+
+**Missing:** the ⏳ Financial Time Machine (Current→2030 slider with animated projections) and a goal-creation UI (the store has `addGoal`, but no form is wired).
+
+---
+
+## ⚠️ Phase 6 — Prediction Engine (Partial)
+
+- 3-month spending forecast with seasonal factors, confidence levels, and budget-overflow flags (`generatePredictionsFromData` + predictions widget on the Advisor page)
+
+**Missing:** the 🔮 "What If?" Simulator (toggle Netflix/SIP/bike scenarios with live recalculation).
+
+---
+
+## ⬜ Phases 7 & 8 — Not Started
+
+- **Phase 7:** Production hardening (real auth, rate limiting, security headers) and the 🎙️ AI Voice Financial Coach
+- **Phase 8:** Final deployment and the 🤖 AI Financial Copilot Dashboard briefing
+
+---
+
+## 🎁 Bonus Features (beyond the roadmap)
+
+- **Live Zerodha Kite integration** — real holdings fetch from `api.kite.trade` with sandbox fallback; Portfolio Tracker tab on the Goals page (`app/api/zerodha/holdings`)
+- **Live financial news** — Economic Times RSS scraper with category classification and fallback feed (`app/api/news`, `features/advisor/financial-news-feed.tsx`)
+- **Market ticker** — Yahoo Finance live quotes (NIFTY, SENSEX, BANK NIFTY, USD/INR) in the app shell (`components/layout/market-ticker.tsx`, `app/api/market`)
+- **Splitwise sync UI** — balance overview with API proxy and demo sandbox (`app/api/splitwise`)
+- **FastAPI backend** — Grok (xAI) AI with retries/streaming, ChromaDB RAG, Tesseract OCR, SQLAlchemy data model, and a pytest suite (`backend/`)
+- **Backend data sync** — transactions, goals, and categories auto-sync to the backend (`components/data-initializer.tsx`)
+- **AI assistant drawer** — upgraded from the Phase-1 placeholder to a working chat with guru debate and tool detection
 
 ---
 
 ## 📂 Project Structure
 
 ```
-app/                # Next.js App Router routes (marketing, auth, app, onboarding)
+app/                # Next.js App Router routes (marketing, auth, app, onboarding, API routes)
 components/
   ui/               # Reusable design-system primitives
-  layout/           # Sidebar, navbar, auth layout, mobile nav
+  layout/           # Sidebar, navbar, auth layout, mobile nav, market ticker
   shared/           # Cross-feature building blocks (empty/error states, page header, etc.)
-features/           # Feature-scoped UI: landing, auth, onboarding, dashboard, ai-assistant
+features/           # Feature-scoped UI: landing, auth, onboarding, dashboard, ai-assistant, expenses, advisor, portfolio
 hooks/               # Shared React hooks
-lib/                 # Utilities, formatting, mock data, persona logic
+lib/                 # Utilities, financial engine, OCR/parsers, persona logic, guru knowledge, ML categorizer
 providers/           # App-wide providers (theme, toaster, tooltip)
-services/            # Future API/service layer
-store/               # Zustand stores (UI state, financial persona)
+services/            # Service layer: AI client, advisor, RAG, OCR, health, sync
+store/               # Zustand stores (UI, persona, expenses, goals, categories, auth)
 types/               # Shared TypeScript types
 constants/           # Nav config, site copy, static content
 public/              # Static assets
+backend/             # FastAPI — Grok AI, ChromaDB RAG, Tesseract OCR, SQLAlchemy data sync
 ```
 
 ---
@@ -118,6 +221,17 @@ npm run build     # production build
 npm run lint      # eslint
 ```
 
+### Backend (optional — enables live Grok AI, RAG, OCR, and data sync)
+
+```bash
+cd backend
+pip install -r requirements.txt
+copy .env.example .env   # add GROK_API_KEY, DATABASE_URL, TESSERACT_PATH, etc.
+uvicorn app.main:app --reload   # http://localhost:8000
+```
+
+By default the frontend points at the backend (`NEXT_PUBLIC_AI_PROVIDER=backend`, `NEXT_PUBLIC_OCR_PROVIDER=tesseract`, `NEXT_PUBLIC_RAG_PROVIDER=chromadb` in `.env.local`). When the backend is down, the app falls back to rule-based AI and mock data.
+
 ---
 
 ## 🗺️ Roadmap — The "Wow Feature" Journey
@@ -127,13 +241,13 @@ Since this is a **Track B** build, every phase pairs its core deliverable with o
 | Phase | Core Feature | Wow Feature |
 |---|---|---|
 | 1 ✅ | Authentication & Project Foundation | 🧠 AI Financial Persona Generator |
-| 2 | OCR & Expense Extraction Engine | 🧾 AI Receipt Intelligence |
-| 3 | Smart Expense Analytics | 🧬 Spending DNA Profile |
-| 4 | RAG-Powered Financial Advisor | ⚖️ Multi-Guru AI Debate |
-| 5 | Financial Goal Planning | ⏳ Financial Time Machine |
-| 6 | Prediction Engine | 🔮 Interactive "What If?" Simulator |
-| 7 | Production Hardening & Security | 🎙️ AI Voice Financial Coach |
-| 8 | Final Deployment | 🤖 AI Financial Copilot Dashboard |
+| 2 ✅ | OCR & Expense Extraction Engine | 🧾 AI Receipt Intelligence (partial) |
+| 3 ✅ | Smart Expense Analytics | 🧬 Spending DNA Profile (missing) |
+| 4 ✅ | RAG-Powered Financial Advisor | ⚖️ Multi-Guru AI Debate |
+| 5 ⚠️ | Financial Goal Planning | ⏳ Financial Time Machine (missing) |
+| 6 ⚠️ | Prediction Engine | 🔮 Interactive "What If?" Simulator (missing) |
+| 7 ⬜ | Production Hardening & Security | 🎙️ AI Voice Financial Coach |
+| 8 ⬜ | Final Deployment | 🤖 AI Financial Copilot Dashboard |
 
 ---
 
