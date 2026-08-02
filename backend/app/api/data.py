@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
 
 from app.database.session import get_db
+from app.services.financial_intelligence import infer_category_for_merchant, upsert_merchant_category
 from app.models.transaction import TransactionModel
 from app.models.goal import GoalModel
 from app.models.category import CategoryModel
@@ -92,16 +93,19 @@ async def sync_data(request: SyncRequest, db: AsyncSession = Depends(get_db)):
         await db.execute(delete(GoalModel).where(GoalModel.user_id == user_id))
 
         for t in request.transactions:
+            inferred = await infer_category_for_merchant(db, user_id, t.merchant)
+            resolved_category = t.category or (inferred["category"] if inferred else "other")
             tx = TransactionModel(
                 id=str(uuid.uuid4()),
                 user_id=user_id,
                 merchant=t.merchant,
                 amount=t.amount,
-                category=t.category,
+                category=resolved_category,
                 date=_parse_date(t.date),
                 source=t.source,
             )
             db.add(tx)
+            await upsert_merchant_category(db, user_id, t.merchant, resolved_category, None, tx.date)
 
         for g in request.goals:
             goal = GoalModel(
@@ -220,6 +224,12 @@ async def create_category(cat: CategoryIn, db: AsyncSession = Depends(get_db)):
         parent_category=row.parent_category,
         is_custom=row.is_custom,
     )
+
+
+@router.get("/category-suggestion")
+async def category_suggestion(merchant: str = Query(...), db: AsyncSession = Depends(get_db)):
+    suggestion = await infer_category_for_merchant(db, _DEFAULT_USER_ID, merchant)
+    return {"merchant": merchant, "suggestion": suggestion}
 
 
 @router.get("/health")

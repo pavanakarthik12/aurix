@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useExpensesStore } from "@/store/expenses-store";
 import { useGoalsStore } from "@/store/goals-store";
+import { usePersonaStore } from "@/store/persona-store";
 import {
   autoRecalculateHealthScore, computeHealthHistory, MonthlyHealthSnapshot,
 } from "@/lib/financial-engine";
@@ -61,10 +62,7 @@ function CircularScore({ value, size = 140 }: { value: number; size?: number }) 
 export function HealthScoreCard({ score: initialScore }: { score?: FinancialHealthScore }) {
   const transactions = useExpensesStore((s) => s.transactions);
   const goals = useGoalsStore((s) => s.goals);
-  const [income] = useState(() => {
-    if (typeof window === "undefined") return 75000;
-    try { return parseInt(localStorage.getItem("aurix-income") || "75000"); } catch { return 75000; }
-  });
+  const income = usePersonaStore((s) => s.profile.monthlyIncome || 0);
 
   const autoScore = useMemo(
     () => autoRecalculateHealthScore(transactions, goals, income),

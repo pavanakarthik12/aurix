@@ -4,8 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { AdvisorChat } from "@/features/advisor/advisor-chat";
 import { HealthScoreCard } from "@/features/advisor/health-score";
 import { FinancialTimeline } from "@/features/advisor/timeline-widget";
-import { getFinancialHealthScore } from "@/services/health-service";
-import { getTimelineEvents } from "@/services/health-service";
 import { isAIReal, getAIProviderLabel } from "@/lib/config";
 
 import { FinancialNewsFeed } from "@/features/advisor/financial-news-feed";
@@ -13,8 +11,6 @@ import { FinancialNewsFeed } from "@/features/advisor/financial-news-feed";
 export const metadata: Metadata = { title: "AI Advisor" };
 
 export default async function AdvisorPage() {
-  const healthScore = await getFinancialHealthScore();
-  const timelineEvents = getTimelineEvents();
   const aiLive = isAIReal();
 
   return (
@@ -34,8 +30,8 @@ export default async function AdvisorPage() {
           <AdvisorChat />
         </div>
         <div className="space-y-6">
-          <HealthScoreCard score={healthScore} />
-          <FinancialTimeline events={timelineEvents} />
+          <HealthScoreCard />
+          <FinancialTimeline events={[]} />
         </div>
       </div>
 

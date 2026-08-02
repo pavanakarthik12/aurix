@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
     }
 
     const transactions: Transaction[] = userContext?.transactions || [];
-    const income = userContext?.income || 75000;
+    const income = userContext?.income || 0;
     const goals: FinancialGoal[] = userContext?.goals || [];
     const analysis = userContext?.analysis || generateExpenseAnalysis(transactions);
     const currentTotal = totalSpending(getMonthlyTransactions(transactions, 1));

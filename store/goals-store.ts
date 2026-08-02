@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { FinancialGoal } from "@/types/finance";
-import { MOCK_GOALS } from "@/lib/mock-data";
 
 interface GoalsState {
   goals: FinancialGoal[];
@@ -15,7 +14,7 @@ interface GoalsState {
 export const useGoalsStore = create<GoalsState>()(
   persist(
     (set) => ({
-      goals: MOCK_GOALS,
+      goals: [],
       addGoal: (goal) =>
         set((state) => ({
           goals: [
