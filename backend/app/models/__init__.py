@@ -6,6 +6,7 @@ from app.models.transaction import TransactionModel
 from app.models.goal import GoalModel
 from app.models.budget import BudgetModel
 from app.models.category import CategoryModel
+from app.models.merchant_category import MerchantCategoryModel
 from app.models.document import DocumentModel
 
 __all__ = [
@@ -15,5 +16,6 @@ __all__ = [
     "GoalModel",
     "BudgetModel",
     "CategoryModel",
+    "MerchantCategoryModel",
     "DocumentModel",
 ]

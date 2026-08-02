@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Receipt,
@@ -14,6 +15,8 @@ import {
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { TimelineEvent } from "@/types/finance";
+import { useExpensesStore } from "@/store/expenses-store";
+import { useGoalsStore } from "@/store/goals-store";
 
 interface TimelineWidgetProps {
   events: TimelineEvent[];
@@ -35,7 +38,46 @@ function formatDate(date: string) {
 }
 
 export function FinancialTimeline({ events }: TimelineWidgetProps) {
-  const sorted = [...events].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const transactions = useExpensesStore((s) => s.transactions);
+  const goals = useGoalsStore((s) => s.goals);
+
+  const derivedEvents = useMemo(() => {
+    if (events.length > 0) return events;
+
+    const items: TimelineEvent[] = [];
+    const recentTxs = [...transactions]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5);
+
+    for (const tx of recentTxs) {
+      items.push({
+        id: `tx-${tx.id}`,
+        type: "expense",
+        title: tx.merchant,
+        amount: tx.amount,
+        date: tx.date,
+        category: tx.category,
+        status: "completed",
+      });
+    }
+
+    for (const goal of goals) {
+      const progress = goal.targetAmount > 0 ? (goal.currentAmount / goal.targetAmount) * 100 : 0;
+      items.push({
+        id: `goal-${goal.id}`,
+        type: "goal",
+        title: `${goal.title} Progress`,
+        amount: goal.currentAmount,
+        date: new Date().toISOString().split("T")[0],
+        status: progress >= 100 ? "completed" : "upcoming",
+        description: `${Math.round(progress)}% of target reached`,
+      });
+    }
+
+    return items;
+  }, [events, transactions, goals]);
+
+  const sorted = [...derivedEvents].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
     <Card>

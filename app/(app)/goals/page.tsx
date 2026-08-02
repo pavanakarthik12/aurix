@@ -9,13 +9,14 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { PortfolioTracker } from "@/features/portfolio/portfolio-tracker";
-import { MOCK_GOALS } from "@/lib/mock-data";
+import { useGoalsStore } from "@/store/goals-store";
 import { formatCurrency, formatDate } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Financial Goals" };
 
 export default function GoalsPage() {
-  const hasGoals = MOCK_GOALS.length > 0;
+  const goals = useGoalsStore((s) => s.goals);
+  const hasGoals = goals.length > 0;
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -47,7 +48,7 @@ export default function GoalsPage() {
         <TabsContent value="goals" className="space-y-6">
           {hasGoals ? (
             <div className="grid gap-6 sm:grid-cols-2">
-              {MOCK_GOALS.map((goal) => {
+              {goals.map((goal) => {
                 const pct = Math.round((goal.currentAmount / goal.targetAmount) * 100);
                 const remaining = goal.targetAmount - goal.currentAmount;
                 return (

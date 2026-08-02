@@ -6,6 +6,7 @@ from loguru import logger
 
 from app.api.health import router as health_router, set_grok_status, set_db_status
 from app.api.ai import router as ai_router
+from app.api.intelligence import router as intelligence_router
 from app.api.ocr import router as ocr_router
 from app.api.data import router as data_router
 from app.rag.api import router as rag_router
@@ -61,6 +62,7 @@ app.add_exception_handler(Exception, global_exception_handler)
 
 app.include_router(health_router, prefix="/api/v1")
 app.include_router(ai_router, prefix="/api/v1")
+app.include_router(intelligence_router, prefix="/api/v1")
 app.include_router(ocr_router, prefix="/api/v1")
 app.include_router(rag_router, prefix="/api/v1")
 app.include_router(data_router, prefix="/api/v1")

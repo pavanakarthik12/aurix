@@ -782,7 +782,8 @@ export interface MonthlyHealthSnapshot {
 }
 
 export function computeHealthHistory(transactions: Transaction[], goals: FinancialGoal[], income?: number): MonthlyHealthSnapshot[] {
-  const monthlyIncome = income || 75000;
+  const monthlyIncome = income ?? 0;
+  if (monthlyIncome <= 0) return [];
   const byMonth: Record<string, Transaction[]> = {};
   for (const tx of transactions) {
     const d = new Date(tx.date);
@@ -825,7 +826,18 @@ export function autoRecalculateHealthScore(transactions: Transaction[], goals: F
   explanation: string;
   recommendations: string[];
 } {
-  const monthlyIncome = income || 75000;
+  const monthlyIncome = income ?? 0;
+  if (monthlyIncome <= 0) {
+    return {
+      overall: 0,
+      savingsRate: 0,
+      budgetAdherence: 0,
+      goalProgress: goals.length > 0 ? Math.round(goals.reduce((s, g) => s + (g.targetAmount > 0 ? (g.currentAmount / g.targetAmount) * 100 : 0), 0) / goals.length) : 0,
+      cashFlow: 0,
+      explanation: "Monthly income is required to calculate a reliable Financial Health Score.",
+      recommendations: ["Add your monthly income in onboarding or profile settings before reviewing the score."],
+    };
+  }
   const currentTotal = totalSpending(getMonthlyTransactions(transactions, 1));
   const savings = Math.max(0, monthlyIncome - currentTotal);
   const rate = savingsRate(monthlyIncome, currentTotal);
