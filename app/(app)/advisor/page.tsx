@@ -9,6 +9,7 @@ import { getTimelineEvents } from "@/services/health-service";
 import { isAIReal, getAIProviderLabel } from "@/lib/config";
 
 import { FinancialNewsFeed } from "@/features/advisor/financial-news-feed";
+import { WhatIfSimulator } from "@/features/advisor/what-if-simulator";
 
 export const metadata: Metadata = { title: "AI Advisor" };
 
@@ -38,6 +39,8 @@ export default async function AdvisorPage() {
           <FinancialTimeline events={timelineEvents} />
         </div>
       </div>
+
+      <WhatIfSimulator />
 
       <div className="border-t border-border/60 pt-8">
         <FinancialNewsFeed />

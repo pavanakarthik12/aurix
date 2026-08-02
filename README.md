@@ -6,9 +6,9 @@ Aurix is a premium, AI-powered Financial Advisor & Expense Manager — not a cha
 
 This project is being built as a **Track B (Advanced)** submission — an 8-phase build with a distinctive "wow feature" layered into every phase, on top of the core functional requirements.
 
-> **Current status:** Phases 1–4 implemented · Phases 5–6 partially implemented · Phases 7–8 planned.
+> **Current status:** Phases 1–6 implemented · Phases 7–8 planned.
 
-> **Reliability hardening (Aug 2026):** a bug-fix pass shipped — semantic RAG search fully wired, live-AI guru debate schema fixed, tax calculator now models your actual 80C/80D deductions, SMS ingestion parses the transaction date, reports export to CSV, and lint/typecheck/tests/build all pass.
+> **Reliability hardening (Aug 2026):** a bug-fix pass shipped — semantic RAG search fully wired, live-AI guru debate schema fixed, tax calculator now models your actual 80C/80D deductions, SMS ingestion parses the transaction date, reports export to CSV, then the Phase 5 & 6 wow features (Financial Time Machine and "What If?" Simulator) were built and integrated, and lint/typecheck/tests/build all pass.
 
 ---
 
@@ -156,20 +156,22 @@ The frontend `/api/rag/search` route now lazily embeds every curated knowledge p
 
 ---
 
-## ⚠️ Phase 5 — Financial Goal Planning (Partial)
+## ✅ Phase 5 — Financial Goal Planning (Implemented)
 
-- Goals store + progress cards + goal-aware recommendations and health score (`app/(app)/goals/`)
+- Goals store + progress cards + full create-goal form (title, type, target, saved, target date) wired to `addGoal` (`app/(app)/goals/`)
 - **Tax & SIP Calculator**: Old vs New tax regime comparison with §87A rebate, plus standard and step-up SIP compounding (`app/(app)/goals/calculator/`). The old-regime benefit is computed from *your* actual §80C and §80D investments — two new sliders let you model real contributions instead of assuming the maximum.
 
-**Missing:** the ⏳ Financial Time Machine (Current→2030 slider with animated projections) and a goal-creation UI (the store has `addGoal`, but no form is wired).
+### ⏳ Wow Feature: Financial Time Machine
+A Current → 2034 slider that projects your wealth month-by-month in real time (`features/goals/time-machine.tsx`). It starts from your wealth/retirement goal corpus, feeds in your actual monthly income (Persona) minus your average real monthly spending (live expenses), compounds at a 12% annual return, and shows animated stat cards (projected balance, future value today, growth, monthly investable) plus an invested-vs-value area chart.
 
 ---
 
-## ⚠️ Phase 6 — Prediction Engine (Partial)
+## ✅ Phase 6 — Prediction Engine (Implemented)
 
 - 3-month spending forecast with seasonal factors, confidence levels, and budget-overflow flags (`generatePredictionsFromData` + predictions widget on the Advisor page)
 
-**Missing:** the 🔮 "What If?" Simulator (toggle Netflix/SIP/bike scenarios with live recalculation).
+### 🔮 Wow Feature: "What If?" Simulator
+Live scenario toggling on the Advisor page (`features/advisor/what-if-simulator.tsx`). Toggle real-life changes — cancel streaming, cut food delivery, 20% less dining, +₹2,000 SIP, buy a bike on EMI, or invest a ₹50,000 bonus — plus a custom monthly top-up slider, and watch the baseline-vs-scenario projection chart and projected-wealth delta (in ₹ Lakh/Crore) recalculate instantly.
 
 ---
 
@@ -246,8 +248,8 @@ Since this is a **Track B** build, every phase pairs its core deliverable with o
 | 2 ✅ | OCR & Expense Extraction Engine | 🧾 AI Receipt Intelligence (partial) |
 | 3 ✅ | Smart Expense Analytics | 🧬 Spending DNA Profile (missing) |
 | 4 ✅ | RAG-Powered Financial Advisor | ⚖️ Multi-Guru AI Debate |
-| 5 ⚠️ | Financial Goal Planning | ⏳ Financial Time Machine (missing) |
-| 6 ⚠️ | Prediction Engine | 🔮 Interactive "What If?" Simulator (missing) |
+| 5 ✅ | Financial Goal Planning | ⏳ Financial Time Machine (interactive slider + compounding chart) |
+| 6 ✅ | Prediction Engine | 🔮 Interactive "What If?" Simulator (scenario toggles) |
 | 7 ⬜ | Production Hardening & Security | 🎙️ AI Voice Financial Coach |
 | 8 ⬜ | Final Deployment | 🤖 AI Financial Copilot Dashboard |
 
@@ -315,22 +317,22 @@ Instead of a single answer, Aurix stages a discussion across financial philosoph
 
 ---
 
-### 🚀 Phase 5 — Financial Planner
+### 🚀 Phase 5 — Financial Planner (implemented)
 **Wow Feature: Financial Time Machine**
 
-A slider from **Current → 2030**. As the user drags it, the AI predicts savings, net worth, investments, emergency fund, and debt trajectory — animated in real time.
+A slider from **Current → 2034**. As the user drags it, savings, net worth, investments, and the future corpus are predicted in real time — animated stat cards, an invested-vs-value chart, and a custom monthly top-up slider.
 
 ```
-If you reduce Swiggy by ₹2,500/month
+If you invest your monthly surplus (+₹1,500/month top-up)
 
-2030 Savings: ₹8.6 Lakhs
+2034 Projected balance: ₹11.4 Lakhs
 ```
 
 *Why it impresses: predictive visualization that makes the future tangible.*
 
 ---
 
-### 🚀 Phase 6 — Prediction Engine
+### 🚀 Phase 6 — Prediction Engine (implemented)
 **Wow Feature: "What If?" Simulator**
 
 Users toggle real-life changes — remove Netflix, reduce food spend, increase SIP, buy a bike — and Aurix instantly recalculates savings, investments, future balance, and goal completion with live animations:
