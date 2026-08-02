@@ -8,6 +8,8 @@ This project is being built as a **Track B (Advanced)** submission — an 8-phas
 
 > **Current status:** Phases 1–4 implemented · Phases 5–6 partially implemented · Phases 7–8 planned.
 
+> **Reliability hardening (Aug 2026):** a bug-fix pass shipped — semantic RAG search fully wired, live-AI guru debate schema fixed, tax calculator now models your actual 80C/80D deductions, SMS ingestion parses the transaction date, reports export to CSV, and lint/typecheck/tests/build all pass.
+
 ---
 
 ## ✨ What Aurix Does
@@ -108,7 +110,7 @@ Receipt scanning, bank statement import, and SMS expense capture — with intell
 - Review-and-confirm flow before transactions land in the expense ledger
 
 ### SMS Expense Parser
-- Parses Indian bank SMS notifications (UPI/Card/IMPS) with clipboard-paste support (`features/expenses/sms-ingest.tsx`)
+- Parses Indian bank SMS notifications (UPI/Card/IMPS) with clipboard-paste support — extracting amount, merchant, category, *and* the transaction date from formats like `DD-Mon-YYYY` / `DD/MM/YYYY` (`features/expenses/sms-ingest.tsx`)
 
 ### 🧾 Wow Feature: AI Receipt Intelligence (partial)
 Validation and confidence-flagging scaffolding exists, but LLM reasoning over line items ("This purchase belongs to Dining…") and duplicate-receipt detection are not yet wired to the AI layer.
@@ -149,15 +151,15 @@ The Spending DNA radar chart (Needs / Lifestyle / Convenience / Impulse) with pe
 ### Financial Health Score
 - 8-factor weighted health score with history and AI-driven recommendations (`lib/financial-engine.ts`, `services/health-service.ts`)
 
-### Missing / Next
-- The frontend `/api/rag/search` route builds its client-side embeddings with empty vectors (backend RAG works; the client semantic-search path still needs wiring)
+### RAG Semantic Search (fixed)
+The frontend `/api/rag/search` route now lazily embeds every curated knowledge passage through the backend embed API, ranks chunks by real cosine similarity, and synthesizes an AI answer from the top matches. If the backend is down it transparently falls back to keyword search — no more empty-vector/no-op ranking.
 
 ---
 
 ## ⚠️ Phase 5 — Financial Goal Planning (Partial)
 
 - Goals store + progress cards + goal-aware recommendations and health score (`app/(app)/goals/`)
-- **Tax & SIP Calculator**: Old vs New tax regime comparison with §87A rebate, plus standard and step-up SIP compounding (`app/(app)/goals/calculator/`)
+- **Tax & SIP Calculator**: Old vs New tax regime comparison with §87A rebate, plus standard and step-up SIP compounding (`app/(app)/goals/calculator/`). The old-regime benefit is computed from *your* actual §80C and §80D investments — two new sliders let you model real contributions instead of assuming the maximum.
 
 **Missing:** the ⏳ Financial Time Machine (Current→2030 slider with animated projections) and a goal-creation UI (the store has `addGoal`, but no form is wired).
 
