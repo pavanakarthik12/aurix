@@ -5,6 +5,7 @@ import { Wallet, TrendingDown, TrendingUp, Activity } from "lucide-react";
 import { StatTile } from "@/components/shared/stat-tile";
 import { useExpensesStore } from "@/store/expenses-store";
 import { useGoalsStore } from "@/store/goals-store";
+import { usePersonaStore } from "@/store/persona-store";
 import { totalSpending, getMonthlyTransactions, savingsRate } from "@/lib/financial-engine";
 
 export function OverviewStats() {
@@ -12,8 +13,7 @@ export function OverviewStats() {
   const goals = useGoalsStore((s) => s.goals);
   const currentMonthTxs = useMemo(() => getMonthlyTransactions(transactions, 1), [transactions]);
   const spending = useMemo(() => totalSpending(currentMonthTxs), [currentMonthTxs]);
-  const income = typeof window !== "undefined" ? localStorage.getItem("aurix-income") : null;
-  const monthlyIncome = income ? parseInt(income) : 75000;
+  const monthlyIncome = usePersonaStore((s) => s.profile.monthlyIncome || 0);
   const savings = monthlyIncome - spending;
   const rate = savingsRate(monthlyIncome, spending);
 

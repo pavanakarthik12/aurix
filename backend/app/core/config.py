@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -36,6 +37,13 @@ class Settings(BaseSettings):
 
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
+
+    @field_validator("MAX_UPLOAD_SIZE", mode="before")
+    @classmethod
+    def _coerce_empty_upload_size(cls, value):
+        if value in (None, ""):
+            return 20 * 1024 * 1024
+        return value
 
     model_config = {"env_file": ".env", "case_sensitive": True}
 

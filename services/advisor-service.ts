@@ -10,8 +10,7 @@ import type {
   ExpenseAnalysis,
 } from "@/types/finance";
 import { FINANCIAL_GURUS, ADVICE_PRINCIPLES } from "@/lib/financial-advice";
-import { EXPENSE_BREAKDOWN, SPENDING_TREND } from "@/lib/mock-data";
-import { isAIReal } from "@/lib/config";
+import { config, isAIReal } from "@/lib/config";
 import {
   getMonthlyTransactions,
   totalSpending,
@@ -32,8 +31,8 @@ import {
 } from "@/lib/financial-engine";
 import { getRelevantGuruPassages } from "@/lib/guru-knowledge";
 import { useExpensesStore } from "@/store/expenses-store";
-
-const DEFAULT_INCOME = 75000;
+import { useGoalsStore } from "@/store/goals-store";
+import { usePersonaStore } from "@/store/persona-store";
 
 function getTransactions(): Transaction[] {
   if (typeof window === "undefined") return [];
@@ -47,7 +46,6 @@ function getTransactions(): Transaction[] {
 function getGoals(): FinancialGoal[] {
   if (typeof window === "undefined") return [];
   try {
-    const { useGoalsStore } = require("@/store/goals-store");
     return useGoalsStore.getState().goals || [];
   } catch {
     return [];
@@ -55,19 +53,22 @@ function getGoals(): FinancialGoal[] {
 }
 
 function getIncome(): number {
-  if (typeof window === "undefined") return DEFAULT_INCOME;
+  if (typeof window === "undefined") return 0;
   try {
-    const { usePersonaStore } = require("@/store/persona-store");
     const profile = usePersonaStore.getState().profile;
-    return profile.monthlyIncome || DEFAULT_INCOME;
+    return profile.monthlyIncome || 0;
   } catch {
-    return DEFAULT_INCOME;
+    return 0;
   }
+}
+
+function apiBase(): string {
+  return config.app.apiUrl || "http://localhost:8000";
 }
 
 async function apiCall<T>(endpoint: string, body: Record<string, unknown>): Promise<T | null> {
   try {
-    const res = await fetch(endpoint, {
+    const res = await fetch(`${apiBase()}${endpoint}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -127,7 +128,7 @@ export async function getGuruDebate(query: string): Promise<GuruDebate> {
   const spending = totalSpending(getMonthlyTransactions(transactions, 1));
   const rate = savingsRate(income, spending);
 
-  if (isAIReal()) {
+  if (isAIReal() && income > 0) {
     const result = await apiCall<{ responses: GuruResponse[]; summary: string; confidence: number }>(
       "/api/advisor", {
         query,
@@ -205,12 +206,10 @@ export function getPredictions(): PredictionResult[] {
 export async function getSpendingInsights(): Promise<AIInsight[]> {
   const transactions = getTransactions();
   const analysis = generateExpenseAnalysis(transactions);
+  const income = getIncome();
 
-  if (isAIReal()) {
-    const result = await apiCall<{ insights: AIInsight[] }>("/api/insights", {
-      transactions: transactions.slice(0, 30),
-      analysis,
-    });
+  if (isAIReal() && income > 0) {
+    const result = await apiCall<{ insights: AIInsight[] }>("/api/v1/intelligence/summary", { income });
     if (result?.insights) return result.insights;
   }
 

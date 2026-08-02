@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Transaction } from "@/types/finance";
-import { MOCK_TRANSACTIONS } from "@/lib/mock-data";
 
 export type TransactionSource = "manual" | "screenshot" | "statement" | "splitwise";
 
@@ -24,7 +23,7 @@ function withId(tx: Omit<TrackedTransaction, "id">, salt: number): TrackedTransa
 export const useExpensesStore = create<ExpensesState>()(
   persist(
     (set) => ({
-      transactions: MOCK_TRANSACTIONS.map((tx) => ({ ...tx, source: "manual" as const })),
+      transactions: [],
       addTransaction: (tx) =>
         set((state) => ({
           transactions: [withId(tx, 0), ...state.transactions],

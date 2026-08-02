@@ -1,43 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAIReal } from "@/lib/config";
 import { chatWithAI } from "@/services/ai-client";
-import { EXPENSE_BREAKDOWN } from "@/lib/mock-data";
-
-interface BudgetRecommendation {
+type BudgetRecommendation = {
   category: string;
   currentSpend: number;
   recommendedBudget: number;
   change: number;
   reasoning: string;
-}
-
-function generateBudgetRecs(): BudgetRecommendation[] {
-  const totalSpending = EXPENSE_BREAKDOWN.reduce((s, c) => s + c.amount, 0);
-  const monthlyIncome = 75000;
-  const idealSavings = monthlyIncome * 0.2;
-  const availableForExpenses = monthlyIncome - idealSavings;
-
-  return EXPENSE_BREAKDOWN.map((cat) => {
-    const currentRatio = cat.amount / totalSpending;
-    const recommendedBudget = Math.round(availableForExpenses * currentRatio);
-    const change = recommendedBudget - cat.amount;
-
-    return {
-      category: cat.category,
-      currentSpend: cat.amount,
-      recommendedBudget,
-      change,
-      reasoning: change >= 0
-        ? `You're within budget. Room to increase by ₹${change}.`
-        : `Reduce by ₹${Math.abs(change)} to align with the 20% savings goal.`,
-    };
-  });
-}
+};
 
 export async function GET() {
   try {
-    const recommendations = generateBudgetRecs();
-    return NextResponse.json({ recommendations, updatedAt: new Date().toISOString() });
+    return NextResponse.json({ recommendations: [], updatedAt: new Date().toISOString(), source: "insufficient-budget-data" });
   } catch (err) {
     return NextResponse.json({ error: "Failed to calculate budgets" }, { status: 500 });
   }
@@ -48,8 +22,20 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { income, fixedExpenses } = body as { income?: number; fixedExpenses?: number };
 
-    const effectiveIncome = income || 75000;
-    const recommendations = generateBudgetRecs();
+    if (!income || income <= 0 || !fixedExpenses || fixedExpenses < 0) {
+      return NextResponse.json({ recommendations: [], source: "insufficient-data" });
+    }
+
+    const availableForExpenses = Math.max(0, income - fixedExpenses);
+    const recommendations: BudgetRecommendation[] = [
+      {
+        category: "fixed-expenses",
+        currentSpend: fixedExpenses,
+        recommendedBudget: availableForExpenses,
+        change: availableForExpenses - fixedExpenses,
+        reasoning: "Budget based on the income and fixed-expense values you provided.",
+      },
+    ];
 
     if (isAIReal()) {
       try {
@@ -61,7 +47,7 @@ export async function POST(req: NextRequest) {
             },
             {
               role: "user",
-              content: `Income: ₹${effectiveIncome}. Recommendations: ${JSON.stringify(recommendations)}. Provide a 2-3 sentence summary.`,
+              content: `Income: ₹${income}. Fixed expenses: ₹${fixedExpenses}. Recommendations: ${JSON.stringify(recommendations)}. Provide a 2-3 sentence summary.`,
             },
           ],
           { temperature: 0.3, maxTokens: 256 }

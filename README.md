@@ -19,6 +19,29 @@ This project is being built as a **Track B (Advanced)** submission — an 8-phas
 - Tracks financial goals with honest, real-time progress
 - Builds a **Financial Persona** for every user that powers personalization across the app
 - Surfaces spending analytics, budgets, and financial health at a glance
+- Predicts your financial future — Time Machine projections and "What If?" scenario simulation
+
+---
+
+## 🗺️ Feature Overview
+
+Every route and feature shipping today, mapped to the phase that owns it:
+
+| Area | Route | What's included | Phase |
+|---|---|---|---|
+| **Dashboard** | `/dashboard` | Net Worth / Monthly Spending / Savings / Financial Health stat tiles; spending vs savings trend; category donut; budget-vs-limit tracker; goals widget; recent transactions; quick AI insights | 1 |
+| **Onboarding** | `/onboarding` | 5-step AI Financial Persona quiz → archetype (e.g. "The Strategic Saver") persisted to Zustand + localStorage | 1 |
+| **Auth** | `/login` `/register` `/forgot-password` | Split-panel brand layout, React Hook Form + Zod validation, cookie route protection | 1 |
+| **Expenses** | `/expenses` | 5 capture tabs: screenshots (OCR), bank statement CSV auto-detect (SBI/HDFC/ICICI), SMS clipboard parser (amount + merchant + **date**), manual entry, Splitwise sync · auto-categorization + review flow | 2 |
+| **Reports** | `/reports` | Overview stats, spending trend, category breakdown, one-click **CSV export** | 3 |
+| **Advisor** | `/advisor` | Multi-guru AI debate (7 gurus) · chat (chat/debate/insight modes with **tool detection**: forecasts, insights, recommendations, multi-tool) · Financial Health Score (8-factor) · financial timeline · live ET news feed · **🔮 "What-If?" Simulator** | 4 + 6 |
+| **Goals** | `/goals` | Goals with progress % · **create-goal form** (title, type, target, saved, date) · goal-aware recommendations & health score · **⏳ Financial Time Machine** (Current → 2034 slider, compounding chart) · live Zerodha/Groww **Portfolio Tracker** tab | 5 |
+| **Tax & SIP Tools** | `/goals/calculator` | Old vs New regime with §87A rebate, real §80C/§80D sliders · standard & step-up SIP compounding | 5 |
+| **Knowledge Base (RAG)** | `/knowledge-base` | Upload + browse documents · semantic vector search via backend ChromaDB + keyword fallback | 4 |
+| **Profile** | `/profile` | Financial Persona summary card | 1 |
+| **Settings** | `/settings` | General / Notifications / Security preferences | 1 |
+| **Market ticker** | app shell | Live NIFTY, SENSEX, BANK NIFTY, USD/INR quotes (Yahoo Finance) | bonus |
+| **AI Assistant** | floating FAB | Slide-in assistant drawer — working chat with guru debate & tool detection | 1 + 4 |
 
 ---
 
