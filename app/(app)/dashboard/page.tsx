@@ -26,8 +26,11 @@ export default function DashboardPage() {
 
   useEffect(() => {
     getSpendingInsights().then(setInsights).catch(() => {});
-    setRecommendations(getAIRecommendations());
+    const t = setTimeout(() => {
+      setRecommendations(getAIRecommendations());
+    }, 0);
     getFinancialHealthScore().then(setHealthScore).catch(() => {});
+    return () => clearTimeout(t);
   }, []);
 
   return (

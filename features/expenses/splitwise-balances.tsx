@@ -60,7 +60,10 @@ export function SplitwiseBalances() {
   };
 
   useEffect(() => {
-    loadSplitwiseData();
+    const t = setTimeout(() => {
+      void loadSplitwiseData();
+    }, 0);
+    return () => clearTimeout(t);
   }, []);
 
   return (

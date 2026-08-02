@@ -114,7 +114,7 @@ export function getTimelineEvents(): TimelineEvent[] {
   const transactions = getTransactions();
   const events: TimelineEvent[] = [];
 
-  const recentTxs = transactions
+  const recentTxs = [...transactions]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5);
 

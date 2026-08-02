@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,16 +27,7 @@ export function PortfolioTracker() {
   const [apiKey, setApiKey] = useState("");
   const [accessToken, setAccessToken] = useState("");
 
-  useEffect(() => {
-    const savedApiKey = localStorage.getItem("aurix_zerodha_apikey") || "";
-    const savedToken = localStorage.getItem("aurix_zerodha_token") || "";
-    if (savedApiKey) setApiKey(savedApiKey);
-    if (savedToken) setAccessToken(savedToken);
-
-    fetchHoldings(savedApiKey, savedToken);
-  }, []);
-
-  const fetchHoldings = async (key = apiKey, token = accessToken) => {
+  const fetchHoldings = useCallback(async (key = apiKey, token = accessToken) => {
     setSyncing(true);
     try {
       const headers: Record<string, string> = {};
@@ -57,7 +48,18 @@ export function PortfolioTracker() {
     } finally {
       setSyncing(false);
     }
-  };
+  }, [apiKey, accessToken]);
+
+  useEffect(() => {
+    const savedApiKey = localStorage.getItem("aurix_zerodha_apikey") || "";
+    const savedToken = localStorage.getItem("aurix_zerodha_token") || "";
+    const t = setTimeout(() => {
+      if (savedApiKey) setApiKey(savedApiKey);
+      if (savedToken) setAccessToken(savedToken);
+      void fetchHoldings(savedApiKey, savedToken);
+    }, 0);
+    return () => clearTimeout(t);
+  }, [fetchHoldings]);
 
   const handleSaveCredentials = (e: React.FormEvent) => {
     e.preventDefault();

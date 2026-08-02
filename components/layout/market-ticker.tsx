@@ -31,9 +31,14 @@ export function MarketTicker() {
   };
 
   useEffect(() => {
-    fetchMarketData();
-    const interval = setInterval(fetchMarketData, 60000); // refresh every minute
-    return () => clearInterval(interval);
+    const t = setTimeout(() => {
+      void fetchMarketData();
+    }, 0);
+    const interval = setInterval(() => void fetchMarketData(), 60000); // refresh every minute
+    return () => {
+      clearTimeout(t);
+      clearInterval(interval);
+    };
   }, []);
 
   // Set up local micro-fluctuations so the ticker looks active and ticking in real time

@@ -129,10 +129,17 @@ export async function generateEmbedding(text: string): Promise<number[]> {
 }
 
 export function cosineSimilarity(a: number[], b: number[]): number {
-  const dot = a.reduce((s, v, i) => s + v * b[i], 0);
-  const magA = Math.sqrt(a.reduce((s, v) => s + v * v, 0));
-  const magB = Math.sqrt(b.reduce((s, v) => s + v * v, 0));
-  return magA && magB ? dot / (magA * magB) : 0;
+  const len = Math.min(a.length, b.length);
+  if (len === 0) return 0;
+  let dot = 0;
+  let magA = 0;
+  let magB = 0;
+  for (let i = 0; i < len; i++) {
+    dot += a[i] * b[i];
+    magA += a[i] * a[i];
+    magB += b[i] * b[i];
+  }
+  return magA && magB ? dot / (Math.sqrt(magA) * Math.sqrt(magB)) : 0;
 }
 
 export async function processReceiptOCR(request: {

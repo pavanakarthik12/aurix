@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MessageSquare, Clipboard, Plus, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useExpensesStore } from "@/store/expenses-store";
+import { parseFlexibleDate } from "@/lib/dates";
 import type { ExpenseCategory } from "@/types/finance";
 
 export function SMSIngest() {
@@ -38,7 +39,7 @@ export function SMSIngest() {
     ];
 
     for (const regex of amountRegexes) {
-      const match = smsText.match(regex);
+      const match = text.match(regex);
       if (match) {
         parsedAmount = match[1].replace(/,/g, "");
         break;
@@ -54,7 +55,7 @@ export function SMSIngest() {
     ];
 
     for (const regex of merchantRegexes) {
-      const match = smsText.match(regex);
+      const match = text.match(regex);
       if (match) {
         parsedMerchant = match[1].trim();
         break;
@@ -70,6 +71,9 @@ export function SMSIngest() {
     } else {
       parsedMerchant = "Unknown Merchant";
     }
+
+    // 2b. Parse Date (Indian formats: DD/MM/YYYY, DD-Mon-YYYY, DD-MM-YYYY)
+    const parsedDate = parseFlexibleDate(text);
 
     // 3. Simple Category Heuristics
     let parsedCategory: ExpenseCategory = "other";
@@ -94,6 +98,7 @@ export function SMSIngest() {
       setAmount(parsedAmount);
       setMerchant(parsedMerchant);
       setCategory(parsedCategory);
+      if (parsedDate) setDate(parsedDate);
       setParsed(true);
       toast.success("Successfully parsed SMS details!");
     } else {

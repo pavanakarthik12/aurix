@@ -872,7 +872,10 @@ export function autoRecalculateHealthScore(transactions: Transaction[], goals: F
  * Calculates Indian income tax comparing Old vs New tax regimes.
  * Supports standard deductions and rebate sections (87A).
  */
-export function calculateIndianTax(monthlyIncome: number): {
+export function calculateIndianTax(
+  monthlyIncome: number,
+  options?: { section80C?: number; section80D?: number }
+): {
   annualIncome: number;
   newRegimeTax: number;
   oldRegimeTax: number;
@@ -881,6 +884,11 @@ export function calculateIndianTax(monthlyIncome: number): {
   advice: string;
 } {
   const annualIncome = monthlyIncome * 12;
+  // Old Regime only benefits from deductions actually claimed. Default to
+  // assumed full limits (₹1.5L 80C + ₹25k 80D) so the numbers stay honest
+  // and the caller can override with their real figures.
+  const section80C = Math.min(150000, Math.max(0, options?.section80C ?? 150000));
+  const section80D = Math.min(25000, Math.max(0, options?.section80D ?? 25000));
 
   // New Regime Calculation (FY 2024-25 / AY 2025-26 rules)
   // Standard Deduction: ₹75,000
@@ -911,8 +919,8 @@ export function calculateIndianTax(monthlyIncome: number): {
   }
 
   // Old Regime Calculation
-  // Standard Deduction: ₹50,000, 80C Deduction: ₹1,50,000, 80D: ₹25,000
-  const deductionsOld = 50000 + 150000 + 25000;
+  // Standard Deduction: ₹50,000 + user's actual 80C/80D deductions
+  const deductionsOld = 50000 + section80C + section80D;
   const taxableOld = Math.max(0, annualIncome - deductionsOld);
   let oldTax = 0;
   if (taxableOld > 250000) {
@@ -938,8 +946,8 @@ export function calculateIndianTax(monthlyIncome: number): {
   const recommendedRegime = newTax <= oldTax ? "new" : "old";
   const taxSavings = Math.abs(oldTax - newTax);
   const advice = recommendedRegime === "new"
-    ? `The New Tax Regime saves you ₹${taxSavings.toLocaleString()}/year. Even with standard tax deductions (80C, 80D) in the Old Regime, the lower tax slab rates in the New Regime yield better outcomes.`
-    : `The Old Tax Regime saves you ₹${taxSavings.toLocaleString()}/year. Your investments and deductions under Section 80C/80D reduce your taxable income enough to make the Old Regime preferable.`;
+    ? `The New Tax Regime saves you ₹${taxSavings.toLocaleString()}/year vs the Old Regime, even using the standard ₹50,000 deduction plus 80C (${(section80C / 100000).toFixed(1)}L) and 80D (₹${section80D.toLocaleString()} / year) benefits.`
+    : `The Old Tax Regime saves you ₹${taxSavings.toLocaleString()}/year. With ₹50,000 standard deduction plus your 80C (${(section80C / 100000).toFixed(1)}L) and 80D (₹${section80D.toLocaleString()}) contributions, the lower effective tax outweighs the new regime's slab rates. Increase 80C/80D investment to maximise this benefit.`;
 
   return {
     annualIncome,

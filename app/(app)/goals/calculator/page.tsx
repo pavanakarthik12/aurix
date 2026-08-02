@@ -12,8 +12,10 @@ export default function CalculatorPage() {
   const [monthlyIncome, setMonthlyIncome] = useState(150000);
   const [monthlySip, setMonthlySip] = useState(10000);
   const [years, setYears] = useState(15);
+  const [section80C, setSection80C] = useState(150000);
+  const [section80D, setSection80D] = useState(25000);
 
-  const tax = calculateIndianTax(monthlyIncome);
+  const tax = calculateIndianTax(monthlyIncome, { section80C, section80D });
   const sip = calculateSIPWealth(monthlySip, years, 12);
 
   const maxTax = Math.max(tax.oldRegimeTax, tax.newRegimeTax, 1);
@@ -105,6 +107,46 @@ export default function CalculatorPage() {
             <div className="flex justify-between text-[10px] text-muted-foreground">
               <span>1 Yr</span>
               <span>35 Yrs</span>
+            </div>
+          </div>
+
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-muted-foreground">Section 80C Invested (Annual)</label>
+              <span className="text-sm font-semibold text-foreground">₹{section80C.toLocaleString()}</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="150000"
+              step="5000"
+              value={section80C}
+              onChange={(e) => setSection80C(Number(e.target.value))}
+              className="w-full accent-primary bg-secondary h-1.5 rounded-lg appearance-none cursor-pointer"
+            />
+            <div className="flex justify-between text-[10px] text-muted-foreground">
+              <span>₹0</span>
+              <span>₹1.5L cap</span>
+            </div>
+          </div>
+
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-muted-foreground">Section 80D Health (Annual)</label>
+              <span className="text-sm font-semibold text-foreground">₹{section80D.toLocaleString()}</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="25000"
+              step="1000"
+              value={section80D}
+              onChange={(e) => setSection80D(Number(e.target.value))}
+              className="w-full accent-indigo bg-secondary h-1.5 rounded-lg appearance-none cursor-pointer"
+            />
+            <div className="flex justify-between text-[10px] text-muted-foreground">
+              <span>₹0</span>
+              <span>₹25k cap</span>
             </div>
           </div>
         </CardContent>

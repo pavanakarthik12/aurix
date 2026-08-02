@@ -31,7 +31,10 @@ export function FinancialNewsFeed() {
   };
 
   useEffect(() => {
-    fetchNews();
+    const t = setTimeout(() => {
+      void fetchNews();
+    }, 0);
+    return () => clearTimeout(t);
   }, []);
 
   const categories = ["All", "Tax Planning", "Mutual Funds & SIP", "Stock Market", "Personal Finance"];

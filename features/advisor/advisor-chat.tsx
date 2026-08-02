@@ -155,9 +155,12 @@ export function AdvisorChat() {
   const [predictions, setPredictions] = useState<ReturnType<typeof getPredictions>>([]);
 
   useEffect(() => {
-    setRecommendations(getAIRecommendations());
-    setPredictions(getPredictions());
+    const t = setTimeout(() => {
+      setRecommendations(getAIRecommendations());
+      setPredictions(getPredictions());
+    }, 0);
     getSpendingInsights().then(setInsights);
+    return () => clearTimeout(t);
   }, []);
 
   const aiLive = isAIReal();

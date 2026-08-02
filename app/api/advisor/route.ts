@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAIReal } from "@/lib/config";
 import { chatWithAI, generateGuruDebate, type AIChatMessage } from "@/services/ai-client";
-import { getRelevantGuruPassages } from "@/lib/guru-knowledge";
+import { getRelevantGuruPassages, GURU_KNOWLEDGE } from "@/lib/guru-knowledge";
 import { getFinancialAdvice } from "@/lib/financial-advice";
 import {
   generateExpenseAnalysis,
@@ -14,7 +14,46 @@ import {
   detectAnomalies,
   getMonthlyTransactions,
 } from "@/lib/financial-engine";
-import type { Transaction, ExpenseAnalysis, FinancialGoal } from "@/types/finance";
+import type { Transaction, ExpenseAnalysis, FinancialGoal, GuruResponse } from "@/types/finance";
+
+const GURU_INDEX = new Map<string, Pick<GuruResponse, "guruId" | "guruName" | "emoji" | "philosophy">>();
+for (const guru of GURU_KNOWLEDGE) {
+  const key = guru.name.toLowerCase();
+  const existing = GURU_INDEX.get(key);
+  if (existing) {
+    existing.emoji = existing.emoji || guru.emoji;
+    existing.philosophy = existing.philosophy || guru.philosophy;
+  } else {
+    GURU_INDEX.set(key, {
+      guruId: guru.name.toLowerCase().split(" ")[0],
+      guruName: guru.name,
+      emoji: guru.emoji,
+      philosophy: guru.philosophy,
+    });
+  }
+}
+
+function normalizeDebateResponses(
+  raw: { guruName: string; emoji: string; perspective: string; evidence: string }[]
+): GuruResponse[] {
+  return raw.map((r, i) => {
+    const meta = GURU_INDEX.get(r.guruName.toLowerCase()) || {
+      guruId: `guru-${i}`,
+      guruName: r.guruName,
+      emoji: r.emoji || "🤖",
+      philosophy: "",
+    };
+    const evidence = r.evidence && r.evidence !== r.perspective ? `\n${r.evidence}` : "";
+    return {
+      guruId: meta.guruId,
+      guruName: meta.guruName,
+      emoji: meta.emoji,
+      philosophy: meta.philosophy,
+      principle: "AI Expert Principle",
+      advice: `${r.perspective}${evidence}`,
+    };
+  });
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -69,7 +108,11 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      return NextResponse.json(debate);
+      return NextResponse.json({
+        responses: normalizeDebateResponses(debate.responses),
+        summary: debate.summary,
+        confidence: debate.confidence,
+      });
     }
 
     if (mode === "insight" && isAIReal()) {
