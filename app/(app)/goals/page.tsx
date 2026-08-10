@@ -14,10 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PortfolioTracker } from "@/features/portfolio/portfolio-tracker";
-<<<<<<< HEAD
 import { FinancialTimeMachine } from "@/features/goals/time-machine";
-=======
->>>>>>> 9a14ea04c79cf73e791b987def8f859e110376ef
 import { useGoalsStore } from "@/store/goals-store";
 import { formatCurrency, formatDate } from "@/lib/format";
 import type { FinancialGoalType } from "@/types/finance";
@@ -33,7 +30,6 @@ const GOAL_TYPE_LABELS: Record<FinancialGoalType, string> = {
 
 export default function GoalsPage() {
   const goals = useGoalsStore((s) => s.goals);
-<<<<<<< HEAD
   const addGoal = useGoalsStore((s) => s.addGoal);
   const [showCreate, setShowCreate] = useState(false);
   const [title, setTitle] = useState("");
@@ -62,9 +58,6 @@ export default function GoalsPage() {
     setCurrentAmount("");
     setShowCreate(false);
   };
-=======
-  const hasGoals = goals.length > 0;
->>>>>>> 9a14ea04c79cf73e791b987def8f859e110376ef
 
   return (
     <div className="mx-auto max-w-5xl">
