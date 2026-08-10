@@ -10,6 +10,8 @@ This project is being built as a **Track B (Advanced)** submission — an 8-phas
 
 > **Reliability hardening (Aug 2026):** a bug-fix pass shipped — semantic RAG search fully wired, live-AI guru debate schema fixed, tax calculator now models your actual 80C/80D deductions, SMS ingestion parses the transaction date, reports export to CSV, then the Phase 5 & 6 wow features (Financial Time Machine and "What If?" Simulator) were built and integrated, and lint/typecheck/tests/build all pass.
 
+> **Intelligence upgrade (Aug 2026):** the backend gained a server-side Financial Intelligence layer — trend/anomaly/seasonal insights, the 8-factor health score, and a self-learning merchant→category mapper — with `/api/v1/intelligence/*` endpoints, frontend health/insights routes proxying to it, and AI budget recommendations (details in 🎁 Bonus Features).
+
 ---
 
 ## ✨ What Aurix Does
@@ -212,6 +214,7 @@ Live scenario toggling on the Advisor page (`features/advisor/what-if-simulator.
 - **Market ticker** — Yahoo Finance live quotes (NIFTY, SENSEX, BANK NIFTY, USD/INR) in the app shell (`components/layout/market-ticker.tsx`, `app/api/market`)
 - **Splitwise sync UI** — balance overview with API proxy and demo sandbox (`app/api/splitwise`)
 - **FastAPI backend** — Grok (xAI) AI with retries/streaming, ChromaDB RAG, Tesseract OCR, SQLAlchemy data model, and a pytest suite (`backend/`)
+- **Server-side Financial Intelligence** — a dedicated analytics engine (`backend/app/services/financial_intelligence.py`, ~700 lines) exposed via `/api/v1/intelligence/*`: trend / anomaly / seasonal insights, the 8-factor health score, and a **self-learning merchant→category mapper** — categories are auto-suggested when transactions sync (`backend/app/api/data.py`) and every learned mapping persists in the new `MerchantCategoryModel`. The frontend `/api/health-score` and `/api/insights` routes now proxy to this service, and the `/api/budgets` route generates AI budget recommendations from your income and fixed expenses
 - **Backend data sync** — transactions, goals, and categories auto-sync to the backend (`components/data-initializer.tsx`)
 - **AI assistant drawer** — upgraded from the Phase-1 placeholder to a working chat with guru debate and tool detection
 
