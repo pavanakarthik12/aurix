@@ -9,6 +9,9 @@ from app.api.ai import router as ai_router
 from app.api.intelligence import router as intelligence_router
 from app.api.ocr import router as ocr_router
 from app.api.data import router as data_router
+from app.api.benchmark import router as benchmark_router
+from app.api.security-assessment import router as security_assessment_router
+from app.api.ai-evaluation import router as ai_evaluation_router
 from app.rag.api import router as rag_router
 from app.core.config import settings
 from app.core.exceptions import AurixException, aurix_exception_handler, global_exception_handler
@@ -64,8 +67,11 @@ app.include_router(health_router, prefix="/api/v1")
 app.include_router(ai_router, prefix="/api/v1")
 app.include_router(intelligence_router, prefix="/api/v1")
 app.include_router(ocr_router, prefix="/api/v1")
-app.include_router(rag_router, prefix="/api/v1")
 app.include_router(data_router, prefix="/api/v1")
+app.include_router(benchmark_router, prefix="/api/v1")
+app.include_router(security_assessment_router, prefix="/api/v1")
+app.include_router(ai_evaluation_router, prefix="/api/v1")
+app.include_router(rag_router, prefix="/api/v1")
 
 
 @app.get("/")

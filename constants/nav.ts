@@ -8,6 +8,8 @@ import {
   Settings,
   UserRound,
   BookOpen,
+  Microscope,
+  Server,
 } from "lucide-react";
 
 export type NavItem = {
@@ -21,11 +23,11 @@ export const PRIMARY_NAV: NavItem[] = [
   { label: "Expenses", href: "/expenses", icon: Receipt },
   { label: "Financial Goals", href: "/goals", icon: Target },
   { label: "AI Advisor", href: "/advisor", icon: Sparkles },
-  { label: "Knowledge Base", href: "/knowledge-base", icon: BookOpen },
+  { label: "Analytics", href: "/analytics", icon: Microscope },
   { label: "Reports", href: "/reports", icon: FileBarChart },
 ];
 
 export const SECONDARY_NAV: NavItem[] = [
+  { label: "System Quality", href: "/system-quality", icon: Server },
   { label: "Settings", href: "/settings", icon: Settings },
-  { label: "Profile", href: "/profile", icon: UserRound },
 ];
