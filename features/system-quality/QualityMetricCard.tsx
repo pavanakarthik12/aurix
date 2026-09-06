@@ -9,7 +9,7 @@ interface QualityMetricCardProps {
   title: string;
   value: string;
   unit: string;
-  trend?: "up" | "down";
+  trend?: "up" | "down" | "neutral";
   positive?: boolean;
 }
 
