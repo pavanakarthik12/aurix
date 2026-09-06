@@ -23,14 +23,54 @@ export default function DashboardPage() {
   const [insights, setInsights] = useState<AIInsight[]>([]);
   const [recommendations, setRecommendations] = useState<AIRecommendation[]>([]);
   const [healthScore, setHealthScore] = useState<FinancialHealthScore | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getSpendingInsights().then(setInsights).catch(() => {});
-    const t = setTimeout(() => {
-      setRecommendations(getAIRecommendations());
-    }, 0);
-    getFinancialHealthScore().then(setHealthScore).catch(() => {});
-    return () => clearTimeout(t);
+    let mounted = true;
+
+    async function loadDashboardData() {
+      setLoading(true);
+      setError(null);
+
+      try {
+        // Load all data in parallel
+        const [insightsData, healthData] = await Promise.all([
+          getSpendingInsights().catch((err) => {
+            console.error("Insights error:", err);
+            return [];
+          }),
+          getFinancialHealthScore().catch((err) => {
+            console.error("Health score error:", err);
+            return null;
+          }),
+        ]);
+
+        // Get recommendations synchronously (no API call)
+        const recommendationsData = getAIRecommendations();
+
+        if (mounted) {
+          setInsights(insightsData);
+          setHealthScore(healthData);
+          setRecommendations(recommendationsData);
+        }
+      } catch (err) {
+        console.error("Dashboard load error:", err);
+        if (mounted) {
+          setError("Failed to load dashboard data. Please refresh the page.");
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadDashboardData();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   return (
@@ -46,6 +86,12 @@ export default function DashboardPage() {
         }
       />
 
+      {error && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+          <p className="text-sm font-medium">{error}</p>
+        </div>
+      )}
+
       <div className="space-y-6">
         <OverviewStats />
 
@@ -56,7 +102,16 @@ export default function DashboardPage() {
           <DashboardPersonaCard />
         </div>
 
-        {healthScore && <HealthScoreCard score={healthScore} />}
+        {loading && !healthScore ? (
+          <div className="flex items-center justify-center rounded-lg border border-gray-200 bg-white p-8">
+            <div className="text-center">
+              <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600"></div>
+              <p className="mt-4 text-sm text-gray-500">Loading financial insights...</p>
+            </div>
+          </div>
+        ) : healthScore ? (
+          <HealthScoreCard score={healthScore} />
+        ) : null}
 
         <div className="grid gap-6 lg:grid-cols-2">
           <RecentTransactions />
@@ -71,8 +126,8 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
-          <InsightsList insights={insights} />
-          <RecommendationsList recommendations={recommendations} />
+          <InsightsList insights={insights} loading={loading} />
+          <RecommendationsList recommendations={recommendations} loading={loading} />
         </div>
 
         <QuickInsights />

@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "env": {
+    "NEXT_PUBLIC_AI_PROVIDER": "backend",
+    "NEXT_PUBLIC_OCR_PROVIDER": "tesseract",
+    "NEXT_PUBLIC_CHUNK_SIZE": "512",
+    "NEXT_PUBLIC_CHUNK_OVERLAP": "64"
+  },
+  "build": {
+    "env": {
+      "NEXT_PUBLIC_AI_PROVIDER": "backend",
+      "NEXT_PUBLIC_OCR_PROVIDER": "tesseract"
+    }
+  }
+}

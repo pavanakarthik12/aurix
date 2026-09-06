@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useExpensesStore } from "@/store/expenses-store";
@@ -45,7 +45,7 @@ export function AnalyticsPage() {
                 <div className="text-muted-foreground">Savings Rate</div>
                 <div className="font-medium">
                   {rate >= 20 ? "Excellent" : rate >= 10 ? "Good" : "Needs improvement"}
-                  {` (${Math.round(rate)}%`)}{rate >= 20 && ` ↘` || rate >= 10 && ` →` || ` ↗`}
+                  {` (${Math.round(rate)}%)`}
                 </div>
               </div>
               <div>
@@ -71,7 +71,9 @@ export function AnalyticsPage() {
                   <div className="font-medium text-foreground">{category}</div>
                   <div className="text-primary">{formatCurrency(data.current)}</div>
                   <div className="text-muted-foreground">
-                    {data.current > 0 ? `${data.changeVsAvg3 > 0 ? "+" : ""}${data.changeVsAvg3}% vs 3-month avg` : "—"}
+                    {data.current > 0 && data.avg3 > 0 
+                      ? `${((data.current - data.avg3) / data.avg3 * 100) > 0 ? "+" : ""}${Math.round((data.current - data.avg3) / data.avg3 * 100)}% vs 3-month avg` 
+                      : "—"}
                   </div>
                 </div>
               ))}
@@ -79,12 +81,12 @@ export function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        <Tabs defaultValue "spending" className="w-full">
+        <Tabs defaultValue="spending" className="w-full">
           <TabsList className="flex flex-wrap gap-2">
             <TabsTrigger value="spending" className="sm:px-3 py-1.5 text-xs font-medium transition-colors">
               Spending Trend
             </TabsTrigger>
-            <TabsTrigger value "goals" className="sm:px-3 py-1.5 text-xs font-medium transition-colors">
+            <TabsTrigger value="goals" className="sm:px-3 py-1.5 text-xs font-medium transition-colors">
               Goal Progress
             </TabsTrigger>
             <TabsTrigger value="patterns" className="sm:px-3 py-1.5 text-xs font-medium transition-colors">

@@ -22,6 +22,7 @@ import type { AIRecommendation } from "@/types/finance";
 
 interface RecommendationsListProps {
   recommendations: AIRecommendation[];
+  loading?: boolean;
 }
 
 const CATEGORY_MAP: Record<string, { icon: React.ElementType; label: string }> = {

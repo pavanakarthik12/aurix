@@ -19,6 +19,7 @@ import type { AIInsight } from "@/types/finance";
 
 interface InsightsListProps {
   insights: AIInsight[];
+  loading?: boolean;
 }
 
 const INSIGHT_ICONS: Record<string, React.ElementType> = {

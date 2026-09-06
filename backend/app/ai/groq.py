@@ -9,29 +9,29 @@ from app.ai.provider import AIProvider, AIMessage, AIResponse
 from app.core.config import settings
 
 
-class GrokConnectionError(Exception):
+class GroqConnectionError(Exception):
     pass
 
 
-class GrokAuthError(Exception):
+class GroqAuthError(Exception):
     pass
 
 
-class GrokRateLimitError(Exception):
+class GroqRateLimitError(Exception):
     pass
 
 
-class GrokTimeoutError(Exception):
+class GroqTimeoutError(Exception):
     pass
 
 
-class GrokProvider(AIProvider):
+class GroqProvider(AIProvider):
     def __init__(self):
-        self.api_key = settings.GROK_API_KEY
-        self.api_base = settings.GROK_API_BASE
-        self.model = settings.GROK_MODEL
-        self.timeout = settings.GROK_TIMEOUT
-        self.max_retries = settings.GROK_MAX_RETRIES
+        self.api_key = settings.GROQ_API_KEY
+        self.api_base = settings.GROQ_API_BASE
+        self.model = settings.GROQ_MODEL
+        self.timeout = settings.GROQ_TIMEOUT
+        self.max_retries = settings.GROQ_MAX_RETRIES
         self._client: httpx.AsyncClient | None = None
 
     @property
@@ -46,7 +46,7 @@ class GrokProvider(AIProvider):
 
     async def _request(self, payload: dict, stream: bool = False) -> httpx.Response:
         if not self.api_key:
-            raise GrokAuthError("GROK_API_KEY is not configured in .env")
+            raise GroqAuthError("GROQ_API_KEY is not configured in .env")
 
         last_error: Exception | None = None
 
@@ -65,15 +65,15 @@ class GrokProvider(AIProvider):
                 response = await self.client.post(url, json=payload, headers=headers)
 
                 if response.status_code == 401:
-                    raise GrokAuthError("Invalid Grok API key — authentication failed")
+                    raise GroqAuthError("Invalid Groq API key — authentication failed")
                 if response.status_code == 429:
                     wait = min(2**attempt, 30)
-                    logger.warning(f"Grok rate limited (attempt {attempt}/{self.max_retries}), retrying in {wait}s")
+                    logger.warning(f"Groq rate limited (attempt {attempt}/{self.max_retries}), retrying in {wait}s")
                     await asyncio.sleep(wait)
                     continue
                 if response.status_code == 503:
                     wait = min(2**attempt, 30)
-                    logger.warning(f"Grok service unavailable (attempt {attempt}/{self.max_retries}), retrying in {wait}s")
+                    logger.warning(f"Groq service unavailable (attempt {attempt}/{self.max_retries}), retrying in {wait}s")
                     await asyncio.sleep(wait)
                     continue
 
@@ -81,24 +81,24 @@ class GrokProvider(AIProvider):
                 return response
 
             except httpx.TimeoutException as e:
-                last_error = GrokTimeoutError(f"Grok request timed out after {self.timeout}s (attempt {attempt}/{self.max_retries})")
+                last_error = GroqTimeoutError(f"Groq request timed out after {self.timeout}s (attempt {attempt}/{self.max_retries})")
                 logger.warning(str(last_error))
                 if attempt < self.max_retries:
                     await asyncio.sleep(min(2**attempt, 10))
-            except (GrokAuthError, GrokRateLimitError) as e:
+            except (GroqAuthError, GroqRateLimitError) as e:
                 raise e
             except httpx.HTTPStatusError as e:
-                last_error = GrokConnectionError(f"Grok HTTP error {e.response.status_code}: {e.response.text[:200]}")
+                last_error = GroqConnectionError(f"Groq HTTP error {e.response.status_code}: {e.response.text[:200]}")
                 logger.error(str(last_error))
                 if attempt < self.max_retries:
                     await asyncio.sleep(min(2**attempt, 10))
             except httpx.RequestError as e:
-                last_error = GrokConnectionError(f"Grok connection failed: {e}")
+                last_error = GroqConnectionError(f"Groq connection failed: {e}")
                 logger.warning(str(last_error))
                 if attempt < self.max_retries:
                     await asyncio.sleep(min(2**attempt, 10))
 
-        raise last_error or GrokConnectionError("All Grok retry attempts failed")
+        raise last_error or GroqConnectionError("All Groq retry attempts failed")
 
     async def chat(
         self, messages: list[AIMessage], temperature: float = 0.7, max_tokens: int = 1024
@@ -112,7 +112,7 @@ class GrokProvider(AIProvider):
             "stream": False,
         }
 
-        logger.info(f"Grok chat request: model={self.model} messages={len(messages)} temperature={temperature}")
+        logger.info(f"Groq chat request: model={self.model} messages={len(messages)} temperature={temperature}")
 
         try:
             response = await self._request(payload)
@@ -122,21 +122,21 @@ class GrokProvider(AIProvider):
             usage = data.get("usage")
             elapsed = time.time() - start
 
-            logger.info(f"Grok chat success: model={self.model} tokens={usage} elapsed={elapsed:.2f}s")
+            logger.info(f"Groq chat success: model={self.model} tokens={usage} elapsed={elapsed:.2f}s")
             return AIResponse(content=content, model=self.model, usage=usage)
 
-        except GrokAuthError:
+        except GroqAuthError:
             elapsed = time.time() - start
-            logger.error(f"Grok auth failed: invalid API key | elapsed={elapsed:.2f}s")
+            logger.error(f"Groq auth failed: invalid API key | elapsed={elapsed:.2f}s")
             raise
-        except GrokTimeoutError:
+        except GroqTimeoutError:
             elapsed = time.time() - start
-            logger.error(f"Grok timeout after {elapsed:.2f}s")
+            logger.error(f"Groq timeout after {elapsed:.2f}s")
             raise
         except Exception as e:
             elapsed = time.time() - start
-            logger.error(f"Grok chat failed: {e} | elapsed={elapsed:.2f}s")
-            raise GrokConnectionError(f"AI service unavailable: {e}")
+            logger.error(f"Groq chat failed: {e} | elapsed={elapsed:.2f}s")
+            raise GroqConnectionError(f"AI service unavailable: {e}")
 
     async def chat_stream(
         self, messages: list[AIMessage], temperature: float = 0.7, max_tokens: int = 1024
@@ -149,7 +149,7 @@ class GrokProvider(AIProvider):
             "stream": True,
         }
 
-        logger.info(f"Grok stream request: model={self.model} messages={len(messages)}")
+        logger.info(f"Groq stream request: model={self.model} messages={len(messages)}")
 
         response = await self._request(payload, stream=True)
 
@@ -162,7 +162,7 @@ class GrokProvider(AIProvider):
 
     async def verify_connection(self) -> bool:
         try:
-            logger.info("Verifying Grok API connection...")
+            logger.info("Verifying Groq API connection...")
             response = await self.chat(
                 [AIMessage(role="user", content="Reply with only the word: connected")],
                 temperature=0.1,
@@ -170,24 +170,25 @@ class GrokProvider(AIProvider):
             )
             is_ok = "connected" in response.content.lower()
             if is_ok:
-                logger.success("✓ Grok Connected Successfully")
+                logger.success("✓ Groq Connected Successfully")
             else:
-                logger.warning("Grok responded but with unexpected content")
+                logger.warning("Groq responded but with unexpected content")
             return is_ok
-        except GrokAuthError:
-            logger.error("✗ Grok Connection Failed: Invalid API key")
+        except GroqAuthError:
+            logger.error("✗ Groq Connection Failed: Invalid API key")
             return False
-        except GrokTimeoutError:
-            logger.error("✗ Grok Connection Failed: Request timed out")
+        except GroqTimeoutError:
+            logger.error("✗ Groq Connection Failed: Request timed out")
             return False
-        except GrokConnectionError as e:
-            logger.error(f"✗ Grok Connection Failed: {e}")
+        except GroqConnectionError as e:
+            logger.error(f"✗ Groq Connection Failed: {e}")
             return False
         except Exception as e:
-            logger.error(f"✗ Grok Connection Failed: {e}")
+            logger.error(f"✗ Groq Connection Failed: {e}")
             return False
 
     async def close(self):
         if self._client:
             await self._client.aclose()
             self._client = None
+

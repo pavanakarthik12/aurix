@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -301,7 +301,7 @@ export function BlogPost() {
                 around 400–600ms. latency increases sub-linearly with the number of retrieved RAG contexts.
               </li>
               <li>
-                Transaction query latency: PostgreSQL PRIMARY KEY lookups average < 5ms; analytics queries with
+                Transaction query latency: PostgreSQL PRIMARY KEY lookups average under 5ms; analytics queries with
                 GROUP BY and aggregates average 20–80ms on datasets of 1,000–10,000 transactions.
               </li>
               <li>
@@ -335,7 +335,7 @@ export function BlogPost() {
               </li>
               <li>
                 Consistency: Running the same scenario twice with identical data produced reasonably consistent
-                advice (category-level consistency > 85%). Minor variations were observed in confidence scoring,
+                advice (category-level consistency greater than 85%). Minor variations were observed in confidence scoring,
                 which depends on the LLM's stochastic output.
               </li>
             </ul>

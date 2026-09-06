@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
-from app.api.health import router as health_router, set_grok_status, set_db_status
+from app.api.health import router as health_router, set_groq_status, set_db_status
 from app.api.ai import router as ai_router
 from app.api.intelligence import router as intelligence_router
 from app.api.ocr import router as ocr_router
@@ -24,11 +24,11 @@ from app.database.session import Base, engine
 async def lifespan(app: FastAPI):
     setup_logging()
     logger.info(f"Starting {settings.APP_NAME} v{settings.VERSION}")
-    logger.info(f"AI Provider: Grok ({settings.GROK_MODEL})")
+    logger.info(f"AI Provider: Groq ({settings.GROQ_MODEL})")
 
     results = await run_startup_validation()
 
-    set_grok_status(results.get("grok", False))
+    set_groq_status(results.get("groq", False))
     set_db_status(results.get("database", False))
 
     if results.get("database"):
@@ -39,7 +39,7 @@ async def lifespan(app: FastAPI):
         logger.warning("Database unavailable — table creation skipped")
 
     if not results.get("environment"):
-        logger.warning("GROK_API_KEY is missing — AI features will not work until it is configured")
+        logger.warning("GROQ_API_KEY is missing — AI features will not work until it is configured")
 
     yield
 

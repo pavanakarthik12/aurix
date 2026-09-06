@@ -13,14 +13,14 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/aurix"
 
-    # Grok (xAI) — Primary LLM Provider
-    GROK_API_KEY: str = ""
-    GROK_API_BASE: str = "https://api.x.ai/v1"
-    GROK_MODEL: str = "grok-beta"
-    GROK_TIMEOUT: int = 60
-    GROK_MAX_RETRIES: int = 3
-    GROK_TEMPERATURE: float = 0.7
-    GROK_MAX_TOKENS: int = 2048
+    # Groq API — Primary LLM Provider (Groq, not Grok/xAI)
+    GROQ_API_KEY: str = ""
+    GROQ_API_BASE: str = "https://api.groq.com/openai/v1"
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+    GROQ_TIMEOUT: int = 60
+    GROQ_MAX_RETRIES: int = 3
+    GROQ_TEMPERATURE: float = 0.7
+    GROQ_MAX_TOKENS: int = 2048
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     UPLOAD_FOLDER: str = "./uploads"
     MAX_UPLOAD_SIZE: int = 20 * 1024 * 1024
 
-    # CORS
+    # CORS - Parse comma-separated origins from environment
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
 
     @field_validator("MAX_UPLOAD_SIZE", mode="before")
@@ -43,6 +43,13 @@ class Settings(BaseSettings):
     def _coerce_empty_upload_size(cls, value):
         if value in (None, ""):
             return 20 * 1024 * 1024
+        return value
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def _parse_cors_origins(cls, value):
+        if isinstance(value, str):
+            return [origin.strip() for origin in value.split(",") if origin.strip()]
         return value
 
     model_config = {"env_file": ".env", "case_sensitive": True}

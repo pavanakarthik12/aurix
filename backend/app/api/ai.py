@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from app.ai.grok import GrokProvider, GrokAuthError, GrokConnectionError, GrokTimeoutError
+from app.ai.groq import GroqProvider, GroqAuthError, GroqConnectionError, GroqTimeoutError
 from app.ai.provider import AIMessage
 
 router = APIRouter(prefix="/ai", tags=["AI"])
@@ -31,16 +31,16 @@ class EmbedResponse(BaseModel):
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
-    provider = GrokProvider()
+    provider = GroqProvider()
     try:
         messages = [AIMessage(role=m["role"], content=m["content"]) for m in request.messages]
         response = await provider.chat(messages, temperature=request.temperature, max_tokens=request.max_tokens)
         return ChatResponse(content=response.content, model=response.model, usage=response.usage)
-    except GrokAuthError as e:
+    except GroqAuthError as e:
         raise HTTPException(status_code=401, detail=str(e))
-    except GrokTimeoutError as e:
+    except GroqTimeoutError as e:
         raise HTTPException(status_code=504, detail=str(e))
-    except GrokConnectionError as e:
+    except GroqConnectionError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI service error: {e}")

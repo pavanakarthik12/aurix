@@ -5,13 +5,13 @@ from pathlib import Path
 from loguru import logger
 from sqlalchemy import text
 
-from app.ai.grok import GrokProvider
+from app.ai.groq import GroqProvider
 from app.core.config import settings
 from app.database.session import engine
 
 
-async def verify_grok() -> bool:
-    provider = GrokProvider()
+async def verify_groq() -> bool:
+    provider = GroqProvider()
     try:
         return await provider.verify_connection()
     finally:
@@ -73,15 +73,15 @@ async def run_startup_validation() -> dict[str, str | bool]:
     logger.info("Aurix Startup Validation")
     logger.info("=" * 50)
 
-    if settings.GROK_API_KEY:
-        logger.info("✓ GROK_API_KEY found in .env")
+    if settings.GROQ_API_KEY:
+        logger.info("✓ GROQ_API_KEY found in .env")
     else:
-        logger.error("✗ GROK_API_KEY is missing from .env — AI features will fail")
+        logger.error("✗ GROQ_API_KEY is missing from .env — AI features will fail")
 
     results = {
-        "environment": bool(settings.GROK_API_KEY),
+        "environment": bool(settings.GROQ_API_KEY),
         "database": False,
-        "grok": False,
+        "groq": False,
         "tesseract": verify_tesseract(),
         "upload_directory": verify_upload_directory(),
         "chroma_path": verify_chroma_path(),
@@ -89,10 +89,10 @@ async def run_startup_validation() -> dict[str, str | bool]:
     }
 
     db_task = asyncio.create_task(verify_database())
-    grok_task = asyncio.create_task(verify_grok())
+    groq_task = asyncio.create_task(verify_groq())
 
     results["database"] = await db_task
-    results["grok"] = await grok_task
+    results["groq"] = await groq_task
 
     logger.info("=" * 50)
     for name, status in results.items():
