@@ -1,6 +1,7 @@
 "use client";
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useExpensesStore } from "@/store/expenses-store";
 import { useGoalsStore } from "@/store/goals-store";
 import { usePersonaStore } from "@/store/persona-store";
