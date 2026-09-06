@@ -31,14 +31,14 @@ export function SystemHealthGrid({ systemHealth }: {
       />
       <HealthStatusCard
         title="Database Status"
-        status={systemHealth.databaseStatus}
+        status={systemHealth.databaseStatus === "healthy" ? "online" : systemHealth.databaseStatus}
         icon={systemHealth.databaseStatus === "healthy"
           ? Microscope
           : systemHealth.databaseStatus === "degraded" ? AlertTriangle : XCircle}
       />
       <HealthStatusCard
         title="AI Provider Status"
-        status={systemHealth.aiProviderStatus}
+        status={systemHealth.aiProviderStatus === "available" ? "online" : systemHealth.aiProviderStatus === "unavailable" ? "offline" : "degraded"}
         icon={systemHealth.aiProviderStatus === "available"
           ? Server
           : systemHealth.aiProviderStatus === "unavailable" ? AlertTriangle : XCircle}
@@ -54,7 +54,7 @@ export function SystemHealthGrid({ systemHealth }: {
   );
 }
 
-function HealthStatusCard({ title, status, icon }: HealthStatusCardProps) {
+function HealthStatusCard({ title, status, icon: Icon }: HealthStatusCardProps) {
   const bgMap = {
     online: "bg-success/10 text-success",
     degraded: "bg-warning/10 text-warning",
@@ -80,7 +80,7 @@ function HealthStatusCard({ title, status, icon }: HealthStatusCardProps) {
           variant={status === "online" || status === "ready" ? "success" : status === "degraded" ? "warning" : "destructive"}
           className="mt-1.5 h-1 w-1 rounded-full flex-shrink-0"
         >
-          {icon ? <icon /> : null}
+          <Icon className="h-1.5 w-1.5" />
         </Badge>
         <div>
           <div className="font-medium text-foreground">{title}</div>

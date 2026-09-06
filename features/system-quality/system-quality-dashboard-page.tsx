@@ -16,7 +16,8 @@ import {
   XCircle,
   Loader2,
 } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardContent, Progress } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -26,8 +27,15 @@ import { usePersonaStore } from "@/store/persona-store";
 import { useUIStore } from "@/store/ui-store";
 import { useMemo } from "react";
 import { formatCurrency, formatCompactNumber } from "@/lib/format";
-import { totalSpending, getMonthlyTransactions, savingsRate } from "@/lib/financial-engine";
+import { totalSpending, savingsRate } from "@/lib/financial-engine";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
+import { PerformanceSummaryCard } from "./PerformanceSummaryCard";
+import { PerformanceMetricsGrid } from "./PerformanceMetricsGrid";
+import { SecurityAssessmentGrid } from "./SecurityAssessmentGrid";
+import { AIQualityMetricsGrid } from "./AIQualityMetricsGrid";
+import { SecurityCheckCard } from "./SecurityCheckCard";
+import { QualityMetricCard } from "./QualityMetricCard";
+import { SystemHealthGrid } from "./SystemHealthGrid";
 
 function getMonthlyTransactions(transactions: any[], months: number = 1) {
   const cutoff = new Date();
@@ -131,21 +139,21 @@ export function SystemQualityDashboardPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick=(() => {
+              onClick={() => {
                 fetchPerformanceData().then(setPerformanceData);
                 fetchSecurityChecks().then(setSecurityChecks);
                 fetchAIQuality().then(setAIQuality);
                 fetchSystemHealth().then(setSystemHealth);
-              })
+              }}
             >
               <Loader2 className="h-4 w-4" /> Refresh
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick=(() => {
+              onClick={() => {
                 router.push("/api/quality/benchmark");
-              })
+              }}
             >
               Run Benchmark
             </Button>

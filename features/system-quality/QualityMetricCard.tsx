@@ -22,7 +22,7 @@ interface QualityMetricState {
 }
 
 export function QualityMetricCard({ title, value, unit, trend = "neutral", positive = true }: QualityMetricCardProps) {
-  const trendIcon = {
+  const TrendIcon = {
     up: TrendingUp,
     down: TrendingDown,
     neutral: CheckCircle,
@@ -56,10 +56,13 @@ export function QualityMetricCard({ title, value, unit, trend = "neutral", posit
           className="h-1.5"
         />
         <div className="text-xs text-muted-foreground mt-1">
-          {trend === "neutral" ? "No directional trend" : trendIcon ? (
-            <trendIcon className="h-3 w-3 me-1" /> {trend}
+          {trend === "neutral" ? (
+            "No directional trend"
           ) : (
-            trend
+            <>
+              <TrendIcon className="h-3 w-3 inline mr-1" />
+              {trend}
+            </>
           )}
         </div>
       </div>

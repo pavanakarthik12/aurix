@@ -77,13 +77,13 @@ function calculateHealthScoreLocal(): FinancialHealthScore {
   return {
     overall: baseScore.overall,
     savingsRate: baseScore.savingsRate,
-    debtRatio: baseScore.debtRatio || 0,
-    emergencyFund: baseScore.emergencyFund || 0,
-    expenseStability: baseScore.expenseStability || 0,
+    debtRatio: 0, // Not calculated by baseScore
+    emergencyFund: 0, // Not calculated by baseScore
+    expenseStability: 0, // Not calculated by baseScore
     budgetAdherence: baseScore.budgetAdherence,
     goalProgress: baseScore.goalProgress,
-    incomeGrowth: baseScore.incomeGrowth || 0,
-    investmentRatio: baseScore.investmentRatio || 0,
+    incomeGrowth: 0, // Not calculated by baseScore
+    investmentRatio: 0, // Not calculated by baseScore
     trend,
     change,
     explanation: `${baseScore.explanation} Current month spending is ₹${currentSpending.toLocaleString()} across ${currentMonthTxs.length} transactions.`,
