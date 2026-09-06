@@ -62,7 +62,7 @@ export function PerformanceMetricsGrid({ performanceData }: {
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <PerformanceCard
         title="OCR Processing"
-        value={performanceData.ocrProcessingTime !== undefined
+        value={performanceData.ocrProcessingTime !== null && performanceData.ocrProcessingTime !== undefined
           ? `${performanceData.ocrProcessingTime.toFixed(2)} ms`
           : "Insufficient data"}
         unit="ms"
@@ -71,7 +71,7 @@ export function PerformanceMetricsGrid({ performanceData }: {
       />
       <PerformanceCard
         title="CSV Processing"
-        value={performanceData.csvProcessingTime !== undefined
+        value={performanceData.csvProcessingTime !== null && performanceData.csvProcessingTime !== undefined
           ? `${performanceData.csvProcessingTime.toFixed(2)} ms`
           : "Insufficient data"}
         unit="ms"
@@ -80,7 +80,7 @@ export function PerformanceMetricsGrid({ performanceData }: {
       />
       <PerformanceCard
         title="PDF Processing"
-        value={performanceData.pdfProcessingTime !== undefined
+        value={performanceData.pdfProcessingTime !== null && performanceData.pdfProcessingTime !== undefined
           ? `${performanceData.pdfProcessingTime.toFixed(2)} ms`
           : "Insufficient data"}
         unit="ms"
@@ -89,7 +89,7 @@ export function PerformanceMetricsGrid({ performanceData }: {
       />
       <PerformanceCard
         title="Transaction Normalization"
-        value={performanceData.transactionNormalizationTime !== undefined
+        value={performanceData.transactionNormalizationTime !== null && performanceData.transactionNormalizationTime !== undefined
           ? `${performanceData.transactionNormalizationTime.toFixed(2)} ms`
           : "Insufficient data"}
         unit="ms"
@@ -98,7 +98,7 @@ export function PerformanceMetricsGrid({ performanceData }: {
       />
       <PerformanceCard
         title="Categorization"
-        value={performanceData.categorizationTime !== undefined
+        value={performanceData.categorizationTime !== null && performanceData.categorizationTime !== undefined
           ? `${performanceData.categorizationTime.toFixed(2)} ms`
           : "Insufficient data"}
         unit="ms"
@@ -107,7 +107,7 @@ export function PerformanceMetricsGrid({ performanceData }: {
       />
       <PerformanceCard
         title="AI Request Latency"
-        value={performanceData.aiRequestLatency !== undefined
+        value={performanceData.aiRequestLatency !== null && performanceData.aiRequestLatency !== undefined
           ? `${performanceData.aiRequestLatency.toFixed(2)} ms`
           : "Insufficient data"}
         unit="ms"
@@ -116,7 +116,7 @@ export function PerformanceMetricsGrid({ performanceData }: {
       />
       <PerformanceCard
         title="Time to First Token"
-        value={performanceData.timeToFirstToken !== undefined
+        value={performanceData.timeToFirstToken !== null && performanceData.timeToFirstToken !== undefined
           ? `${performanceData.timeToFirstToken.toFixed(2)} ms`
           : "Insufficient data"}
         unit="ms"
@@ -125,7 +125,7 @@ export function PerformanceMetricsGrid({ performanceData }: {
       />
       <PerformanceCard
         title="Total Response Time"
-        value={performanceData.totalResponseTime !== undefined
+        value={performanceData.totalResponseTime !== null && performanceData.totalResponseTime !== undefined
           ? `${performanceData.totalResponseTime.toFixed(2)} ms`
           : "Insufficient data"}
         unit="ms"
@@ -134,7 +134,7 @@ export function PerformanceMetricsGrid({ performanceData }: {
       />
       <PerformanceCard
         title="Token Usage"
-        value={performanceData.tokenUsage !== undefined
+        value={performanceData.tokenUsage !== null && performanceData.tokenUsage !== undefined
           ? `${performanceData.tokenUsage} tokens`
           : "Insufficient data"}
         unit="tokens"
@@ -143,7 +143,7 @@ export function PerformanceMetricsGrid({ performanceData }: {
       />
       <PerformanceCard
         title="Successful Requests"
-        value={performanceData.successfulRequests !== undefined
+        value={performanceData.successfulRequests !== null && performanceData.successfulRequests !== undefined
           ? `${performanceData.successfulRequests} successful`
           : "Insufficient data"}
         unit="count"
@@ -152,7 +152,7 @@ export function PerformanceMetricsGrid({ performanceData }: {
       />
       <PerformanceCard
         title="Failed Requests"
-        value={performanceData.failedRequests !== undefined
+        value={performanceData.failedRequests !== null && performanceData.failedRequests !== undefined
           ? `${performanceData.failedRequests} failed`
           : "Insufficient data"}
         unit="count"
@@ -161,7 +161,7 @@ export function PerformanceMetricsGrid({ performanceData }: {
       />
       <PerformanceCard
         title="Document Ingestion"
-        value={performanceData.documentIngestionTime !== undefined
+        value={performanceData.documentIngestionTime !== null && performanceData.documentIngestionTime !== undefined
           ? `${performanceData.documentIngestionTime.toFixed(2)} ms`
           : "Insufficient data"}
         unit="ms"
@@ -170,7 +170,7 @@ export function PerformanceMetricsGrid({ performanceData }: {
       />
       <PerformanceCard
         title="Embedding Generation"
-        value={performanceData.embeddingGenerationTime !== undefined
+        value={performanceData.embeddingGenerationTime !== null && performanceData.embeddingGenerationTime !== undefined
           ? `${performanceData.embeddingGenerationTime.toFixed(2)} ms`
           : "Insufficient data"}
         unit="ms"
@@ -179,7 +179,7 @@ export function PerformanceMetricsGrid({ performanceData }: {
       />
       <PerformanceCard
         title="Retrieval Latency"
-        value={performanceData.retrievalLatency !== undefined
+        value={performanceData.retrievalLatency !== null && performanceData.retrievalLatency !== undefined
           ? `${performanceData.retrievalLatency.toFixed(2)} ms`
           : "Insufficient data"}
         unit="ms"
@@ -188,7 +188,7 @@ export function PerformanceMetricsGrid({ performanceData }: {
       />
       <PerformanceCard
         title="End-to-End RAG"
-        value={performanceData.ragEndToEnd !== undefined
+        value={performanceData.ragEndToEnd !== null && performanceData.ragEndToEnd !== undefined
           ? `${performanceData.ragEndToEnd.toFixed(2)} ms`
           : "Insufficient data"}
         unit="ms"
@@ -197,7 +197,7 @@ export function PerformanceMetricsGrid({ performanceData }: {
       />
       <PerformanceCard
         title="Transaction Query"
-        value={performanceData.transactionQueryTime !== undefined
+        value={performanceData.transactionQueryTime !== null && performanceData.transactionQueryTime !== undefined
           ? `${performanceData.transactionQueryTime.toFixed(2)} ms`
           : "Insufficient data"}
         unit="ms"
@@ -206,7 +206,7 @@ export function PerformanceMetricsGrid({ performanceData }: {
       />
       <PerformanceCard
         title="Analytics Query"
-        value={performanceData.analyticsQueryTime !== undefined
+        value={performanceData.analyticsQueryTime !== null && performanceData.analyticsQueryTime !== undefined
           ? `${performanceData.analyticsQueryTime.toFixed(2)} ms`
           : "Insufficient data"}
         unit="ms"
@@ -215,7 +215,7 @@ export function PerformanceMetricsGrid({ performanceData }: {
       />
       <PerformanceCard
         title="Large Dataset Processing"
-        value={performanceData.largeDatasetTime !== undefined
+        value={performanceData.largeDatasetTime !== null && performanceData.largeDatasetTime !== undefined
           ? `${performanceData.largeDatasetTime.toFixed(2)} ms`
           : "Insufficient data"}
         unit="ms"
@@ -224,7 +224,7 @@ export function PerformanceMetricsGrid({ performanceData }: {
       />
       <PerformanceCard
         title="Throughput (txn/s)"
-        value={performanceData.throughput !== undefined
+        value={performanceData.throughput !== null && performanceData.throughput !== undefined
           ? `${performanceData.throughput} txn/s`
           : "Insufficient data"}
         unit="txn/s"
