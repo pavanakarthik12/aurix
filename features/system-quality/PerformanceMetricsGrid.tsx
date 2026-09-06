@@ -31,8 +31,28 @@ interface PerformanceCardProps {
   title: string;
   value: string;
   unit: string;
-  trend?: "up" | "down";
+  trend?: "up" | "down" | "neutral";
   positive?: boolean;
+}
+
+function PerformanceCard({ title, value, unit, trend, positive }: PerformanceCardProps) {
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">{title}</span>
+            {trend === "up" && positive && <Badge variant="default" className="bg-green-500">↑</Badge>}
+            {trend === "down" && positive && <Badge variant="default" className="bg-green-500">↓</Badge>}
+            {trend === "up" && !positive && <Badge variant="destructive">↑</Badge>}
+            {trend === "down" && !positive && <Badge variant="destructive">↓</Badge>}
+          </div>
+          <div className="text-2xl font-bold">{value}</div>
+          <div className="text-xs text-muted-foreground">{unit}</div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 export function PerformanceMetricsGrid({ performanceData }: {
